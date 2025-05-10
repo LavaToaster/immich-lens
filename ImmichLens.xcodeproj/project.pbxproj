@@ -7,6 +7,8 @@
 	objects = {
 
 /* Begin PBXBuildFile section */
+		66548AD82DD0019A00F23759 /* Nuke in Frameworks */ = {isa = PBXBuildFile; productRef = 66548AD72DD0019A00F23759 /* Nuke */; };
+		66548ADA2DD0019A00F23759 /* NukeUI in Frameworks */ = {isa = PBXBuildFile; productRef = 66548AD92DD0019A00F23759 /* NukeUI */; };
 		6654BC8B2DC7BC4200BD3FAE /* OpenAPIRuntime in Frameworks */ = {isa = PBXBuildFile; productRef = 6654BC8A2DC7BC4200BD3FAE /* OpenAPIRuntime */; };
 		6654BC8E2DC7BC4900BD3FAE /* OpenAPIURLSession in Frameworks */ = {isa = PBXBuildFile; productRef = 6654BC8D2DC7BC4900BD3FAE /* OpenAPIURLSession */; };
 		66E1A6092DC7D5050021CE42 /* FormValidator in Frameworks */ = {isa = PBXBuildFile; productRef = 66E1A6082DC7D5050021CE42 /* FormValidator */; };
@@ -29,19 +31,29 @@
 			isa = PBXFrameworksBuildPhase;
 			buildActionMask = 2147483647;
 			files = (
+				66548ADA2DD0019A00F23759 /* NukeUI in Frameworks */,
 				66E1A6092DC7D5050021CE42 /* FormValidator in Frameworks */,
 				6654BC8B2DC7BC4200BD3FAE /* OpenAPIRuntime in Frameworks */,
 				6654BC8E2DC7BC4900BD3FAE /* OpenAPIURLSession in Frameworks */,
+				66548AD82DD0019A00F23759 /* Nuke in Frameworks */,
 			);
 			runOnlyForDeploymentPostprocessing = 0;
 		};
 /* End PBXFrameworksBuildPhase section */
 
 /* Begin PBXGroup section */
+		66548AD62DD0019A00F23759 /* Frameworks */ = {
+			isa = PBXGroup;
+			children = (
+			);
+			name = Frameworks;
+			sourceTree = "<group>";
+		};
 		6654BC6B2DC7BC0A00BD3FAE = {
 			isa = PBXGroup;
 			children = (
 				6654BC762DC7BC0A00BD3FAE /* ImmichLens */,
+				66548AD62DD0019A00F23759 /* Frameworks */,
 				6654BC752DC7BC0A00BD3FAE /* Products */,
 			);
 			sourceTree = "<group>";
@@ -78,6 +90,8 @@
 				6654BC8A2DC7BC4200BD3FAE /* OpenAPIRuntime */,
 				6654BC8D2DC7BC4900BD3FAE /* OpenAPIURLSession */,
 				66E1A6082DC7D5050021CE42 /* FormValidator */,
+				66548AD72DD0019A00F23759 /* Nuke */,
+				66548AD92DD0019A00F23759 /* NukeUI */,
 			);
 			productName = ImmichLens;
 			productReference = 6654BC742DC7BC0A00BD3FAE /* ImmichLens.app */;
@@ -112,6 +126,7 @@
 				6654BC892DC7BC4200BD3FAE /* XCRemoteSwiftPackageReference "swift-openapi-runtime" */,
 				6654BC8C2DC7BC4900BD3FAE /* XCRemoteSwiftPackageReference "swift-openapi-urlsession" */,
 				66E1A6072DC7D5050021CE42 /* XCRemoteSwiftPackageReference "SwiftUIFormValidator" */,
+				66548ACF2DD000A800F23759 /* XCRemoteSwiftPackageReference "Nuke" */,
 			);
 			preferredProjectObjectVersion = 77;
 			productRefGroup = 6654BC752DC7BC0A00BD3FAE /* Products */;
@@ -277,7 +292,7 @@
 			buildSettings = {
 				ASSETCATALOG_COMPILER_APPICON_NAME = Icons;
 				ASSETCATALOG_COMPILER_GLOBAL_ACCENT_COLOR_NAME = AccentColor;
-				ASSETCATALOG_COMPILER_INCLUDE_ALL_APPICON_ASSETS = NO;
+				ASSETCATALOG_COMPILER_INCLUDE_ALL_APPICON_ASSETS = YES;
 				CODE_SIGN_STYLE = Automatic;
 				CURRENT_PROJECT_VERSION = 1;
 				ENABLE_PREVIEWS = YES;
@@ -308,7 +323,7 @@
 			buildSettings = {
 				ASSETCATALOG_COMPILER_APPICON_NAME = Icons;
 				ASSETCATALOG_COMPILER_GLOBAL_ACCENT_COLOR_NAME = AccentColor;
-				ASSETCATALOG_COMPILER_INCLUDE_ALL_APPICON_ASSETS = NO;
+				ASSETCATALOG_COMPILER_INCLUDE_ALL_APPICON_ASSETS = YES;
 				CODE_SIGN_STYLE = Automatic;
 				CURRENT_PROJECT_VERSION = 1;
 				ENABLE_PREVIEWS = YES;
@@ -358,6 +373,14 @@
 /* End XCConfigurationList section */
 
 /* Begin XCRemoteSwiftPackageReference section */
+		66548ACF2DD000A800F23759 /* XCRemoteSwiftPackageReference "Nuke" */ = {
+			isa = XCRemoteSwiftPackageReference;
+			repositoryURL = "https://github.com/kean/Nuke";
+			requirement = {
+				kind = upToNextMajorVersion;
+				minimumVersion = 12.8.0;
+			};
+		};
 		6654BC862DC7BC3A00BD3FAE /* XCRemoteSwiftPackageReference "swift-openapi-generator" */ = {
 			isa = XCRemoteSwiftPackageReference;
 			repositoryURL = "https://github.com/apple/swift-openapi-generator.git";
@@ -393,6 +416,16 @@
 /* End XCRemoteSwiftPackageReference section */
 
 /* Begin XCSwiftPackageProductDependency section */
+		66548AD72DD0019A00F23759 /* Nuke */ = {
+			isa = XCSwiftPackageProductDependency;
+			package = 66548ACF2DD000A800F23759 /* XCRemoteSwiftPackageReference "Nuke" */;
+			productName = Nuke;
+		};
+		66548AD92DD0019A00F23759 /* NukeUI */ = {
+			isa = XCSwiftPackageProductDependency;
+			package = 66548ACF2DD000A800F23759 /* XCRemoteSwiftPackageReference "Nuke" */;
+			productName = NukeUI;
+		};
 		6654BC8A2DC7BC4200BD3FAE /* OpenAPIRuntime */ = {
 			isa = XCSwiftPackageProductDependency;
 			package = 6654BC892DC7BC4200BD3FAE /* XCRemoteSwiftPackageReference "swift-openapi-runtime" */;

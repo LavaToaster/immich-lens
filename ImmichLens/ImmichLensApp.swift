@@ -36,7 +36,7 @@ struct ImmichLensApp: App {
   private var mainTabView: some View {
     TabView(selection: $selection) {
       Tab("Media", systemImage: "photo", value: .media) {
-        MediaView()
+        TimelineView()
       }
       
       Tab("Explore", systemImage: "mountain.2.circle", value: .explore) {
@@ -66,7 +66,6 @@ struct ImmichLensApp: App {
           }
       }
     }
-    
     .tabViewStyle(.sidebarAdaptable)
   }
 }

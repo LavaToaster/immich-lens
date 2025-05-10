@@ -56,7 +56,6 @@ struct VideoPlayerView: View {
         }
       }
     }
-    //        .navigationTitle("Video")
     .task {
       await loadVideo()
     }
