@@ -37,6 +37,11 @@ struct MediaView: View {
   func fetchData() async {
     isLoading = true
     defer { isLoading = false }
+    
+    if apiService.client == nil {
+      // do nothing, as far as I can tell this is only triggered on logout for some reason
+      return
+    }
 
     do {
       let response = try await apiService.client!.getTimeBuckets(

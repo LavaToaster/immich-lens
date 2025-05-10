@@ -20,13 +20,7 @@ class APIService: ObservableObject, @unchecked Sendable {
   private(set) var serverUrl: String?
   private(set) var token: String?
 
-  init() {
-    Task {
-      await setupFromKeychain()
-    }
-  }
-
-  private func setupFromKeychain() async {
+  public func initialise() async {
     defer { self.isReady = true }
 
     if let token = KeychainManager.shared.get(forKey: "immich_token"),

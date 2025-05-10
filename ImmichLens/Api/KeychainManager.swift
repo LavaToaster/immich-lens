@@ -62,5 +62,7 @@ final class KeychainManager {
       print("Error deleting item: \(status)")
       return
     }
+    
+    print("Item \(key) deleted successfully.")
   }
 }
