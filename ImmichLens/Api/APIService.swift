@@ -13,7 +13,8 @@ import SwiftUI
 @MainActor
 class APIService: ObservableObject, @unchecked Sendable {
   @Published var isAuthenticated = false
-  @Published var isLoading = true
+  @Published var isLoading = false
+  @Published var isReady = false
 
   private(set) var client: Client?
   private(set) var serverUrl: String?
@@ -26,7 +27,7 @@ class APIService: ObservableObject, @unchecked Sendable {
   }
 
   private func setupFromKeychain() async {
-    defer { self.isLoading = false }
+    defer { self.isReady = true }
 
     if let token = KeychainManager.shared.get(forKey: "immich_token"),
       let serverUrl = KeychainManager.shared.get(forKey: "immich_server_url"),
