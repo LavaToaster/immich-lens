@@ -17,6 +17,8 @@ struct ImageViewerView: View {
 
   var body: some View {
     ZStack {
+      Color.black.edgesIgnoringSafeArea(.all)
+      
       AsyncImage(
         url: URL(
           string: apiService.serverUrl! + "/assets/\(assetId)/thumbnail?size=preview&c=\(thumbhash)"
@@ -25,10 +27,13 @@ struct ImageViewerView: View {
         switch phase {
         case .empty:
           ProgressView()
+            .foregroundColor(.white)
         case .success(let image):
           image
             .resizable()
-            .aspectRatio(contentMode: .fit)
+            .scaledToFit()
+            .frame(maxWidth: .infinity, maxHeight: .infinity)
+            .edgesIgnoringSafeArea(.all)
         case .failure(let error):
           VStack {
             Image(systemName: "photo")
