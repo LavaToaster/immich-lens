@@ -44,8 +44,11 @@ struct TimelineView: View {
       }
       .navigationDestination(for: Components.Schemas.AssetResponseDto.self) { asset in
         AssetViewerView(asset: asset)
+          .transition(.opacity)
       }
     }
+    .navigationViewStyle(.stack)
+    .animation(.easeInOut, value: navigationPath)
     .task {
       // Only load data if we haven't loaded any assets yet
       if assets.isEmpty {
@@ -101,26 +104,26 @@ struct TimelineView: View {
     // First, find which bucket contains the lastVisibleIndex
     var assetIndex = 0
     var bucketsToLoad = [Components.Schemas.TimeBucketResponseDto]()
-    
+
     // Find which bucket contains the lastVisibleIndex
     for (_, bucket) in timeBuckets.enumerated() {
       let nextIndex = assetIndex + bucket.count
-      
+
       if lastVisibleIndex >= assetIndex && !loadedBucketIds.contains(bucket.timeBucket) {
         // Add any bucket that contains or precedes our last visible index
         bucketsToLoad.append(bucket)
       }
-      
+
       assetIndex = nextIndex
     }
-    
+
     // If we have buckets to load, start loading them
     if !bucketsToLoad.isEmpty {
       Task {
         for bucket in bucketsToLoad {
           await loadAssetsForBucket(bucket)
         }
-        
+
         if assets.count >= totalAssets {
           hasLoadedAllAssets = true
           logger.info("All assets loaded")
