@@ -17,7 +17,7 @@ struct TimelineGridView: View {
 
   private let logger = Logger(subsystem: "dev.lav.immichlens", category: "TimelineGridView")
   
-  @FocusState private var focusedIndex: Int?
+  @FocusState.Binding var focusedIndex: Int?
 
   // Layout constants
   private let gridSpacing: CGFloat = 64

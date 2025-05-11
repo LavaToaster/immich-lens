@@ -18,6 +18,7 @@ struct TimelineView: View {
   @State private var hasLoadedAllAssets: Bool = false
   @State private var navigationPath = NavigationPath()
   @State private var totalAssets: Int = 0
+  @FocusState private var focusedIndex: Int?
 
   private let logger = Logger(subsystem: "dev.lav.immichlens", category: "TimelineView")
 
@@ -36,7 +37,8 @@ struct TimelineView: View {
             count: totalAssets,
             onLoadMore: { index in
               self.checkAndLoadMoreAssets(index)
-            }
+            },
+            focusedIndex: $focusedIndex,
           )
         }
       }
