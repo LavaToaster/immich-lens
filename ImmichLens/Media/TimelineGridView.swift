@@ -9,14 +9,13 @@ import SwiftUI
 import os
 
 struct TimelineGridView: View {
-  let assets: [Components.Schemas.AssetResponseDto]
+  private let logger = Logger(subsystem: "dev.lav.immichlens", category: "TimelineGridView")
+  
+  let assets: [Asset]
   let count: Int
   let onLoadMore: (Int) -> Void
   
   @State private var lastVisibleIndex: Int = 0
-
-  private let logger = Logger(subsystem: "dev.lav.immichlens", category: "TimelineGridView")
-  
   @FocusState.Binding var focusedIndex: Int?
 
   // Layout constants

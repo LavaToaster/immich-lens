@@ -10,8 +10,7 @@ import os
 
 struct ImageViewerView: View {
   @EnvironmentObject var apiService: APIService
-  let assetId: String
-  let thumbhash: String
+  let asset: Asset
   
   private let logger = Logger(subsystem: "dev.lav.immichlens", category: "ImageViewerView")
 
@@ -20,9 +19,7 @@ struct ImageViewerView: View {
       Color.black.edgesIgnoringSafeArea(.all)
       
       AsyncImage(
-        url: URL(
-          string: apiService.serverUrl! + "/assets/\(assetId)/thumbnail?size=preview&c=\(thumbhash)"
-        )
+        url: asset.imageUrl(size: .preview)
       ) { phase in
         switch phase {
         case .empty:

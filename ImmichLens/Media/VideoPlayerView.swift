@@ -8,12 +8,12 @@
 import AVKit
 import SwiftUI
 import os
+import OpenAPIRuntime
 
 struct VideoPlayerView: View {
   @EnvironmentObject var apiService: APIService
   @Environment(\.dismiss) var dismiss
-  let assetId: String
-  let thumbhash: String
+  let asset: Asset
 
   @State private var player: AVPlayer?
   @State private var isLoading = true
@@ -84,10 +84,7 @@ struct VideoPlayerView: View {
     }
 
     do {
-      guard
-        let downloadUrl = URL(
-          string: "\(serverUrl)/assets/\(assetId)/video/playback?c=\(thumbhash)")
-      else {
+      guard let downloadUrl = asset.videoUrl else {
         throw NSError(
           domain: "dev.lav.immichlens", code: 2,
           userInfo: [NSLocalizedDescriptionKey: "Invalid URL"])

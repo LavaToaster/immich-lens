@@ -13,7 +13,7 @@ struct TimelineView: View {
   @State private var isReady: Bool = false
   @State private var error: Error? = nil
   @State private var timeBuckets: [Components.Schemas.TimeBucketResponseDto] = []
-  @State private var assets: [Components.Schemas.AssetResponseDto] = []
+  @State private var assets: [Asset] = []
   @State private var loadedBucketIds: Set<String> = []
   @State private var hasLoadedAllAssets: Bool = false
   @State private var navigationPath = NavigationPath()
@@ -42,12 +42,14 @@ struct TimelineView: View {
           )
         }
       }
-      .navigationDestination(for: Components.Schemas.AssetResponseDto.self) { asset in
+      .navigationDestination(for: Asset.self) { asset in
         AssetViewerView(asset: asset)
           .transition(.opacity)
       }
     }
+    #if os(tvOS)
     .navigationViewStyle(.stack)
+    #endif
     .animation(.easeInOut, value: navigationPath)
     .task {
       // Only load data if we haven't loaded any assets yet
@@ -147,11 +149,12 @@ struct TimelineView: View {
           isArchived: false, size: .month, timeBucket: bucket.timeBucket, withPartners: true,
           withStacked: true))
 
-      let newAssets = try response.ok.body.json
+      let responseAssets = try response.ok.body.json
+      let assets = responseAssets.map { Asset(from: $0, serverUrl: apiService.serverUrl!) }
 
-      self.assets.append(contentsOf: newAssets)
+      self.assets.append(contentsOf: assets)
       logger.info("Total assets loaded: \(self.assets.count)/\(self.totalAssets)")
-      logger.info("Loaded \(newAssets.count) assets from bucket \(bucket.timeBucket)")
+      logger.info("Loaded \(assets.count) assets from bucket \(bucket.timeBucket)")
     } catch {
       logger.error(
         "Failed to fetch assets for bucket \(bucket.timeBucket): \(error.localizedDescription)")

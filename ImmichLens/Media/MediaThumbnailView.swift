@@ -11,24 +11,20 @@ import SwiftUI
 import os
 
 struct MediaThumbnailView: View {
+  private let logger = Logger(subsystem: "dev.lav.immichlens", category: "MediaThumbnailView")
+
   @EnvironmentObject var apiService: APIService
   @FocusState.Binding var focusedIndex: Int?
   let index: Int
-  let asset: Components.Schemas.AssetResponseDto?
-
-  private let logger = Logger(subsystem: "dev.lav.immichlens", category: "MediaThumbnailView")
+  let asset: Asset?
 
   var body: some View {
     if let asset = asset {
       // Render actual asset
       NavigationLink(value: asset) {
         ZStack(alignment: .bottomTrailing) {
-          let thumbnailUrl =
-            apiService.serverUrl!
-            + "/assets/\(asset.id)/thumbnail?size=thumbnail&c=\(asset.thumbhash!)"
-
           LazyImage(
-            url: URL(string: thumbnailUrl)
+            url: asset.imageUrl(size: .thumbnail)
           ) { state in
             if state.isLoading {
               ProgressView()
@@ -52,7 +48,7 @@ struct MediaThumbnailView: View {
           }
 
           // Video indicator and duration
-          if asset._type.value1 == .video {
+          if asset.type == .video {
             VideoDurationOverlay(duration: asset.duration)
           }
         }
@@ -74,7 +70,7 @@ struct MediaThumbnailView: View {
         .cornerRadius(8)
         .hoverEffect(.highlight)
         .focusable()
-      // .focused($focusedIndex, equals: index)
+        .focused($focusedIndex, equals: index)
     }
   }
 }
