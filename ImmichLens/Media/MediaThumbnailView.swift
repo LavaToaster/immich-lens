@@ -18,6 +18,19 @@ struct MediaThumbnailView: View {
   let index: Int
   let asset: Asset?
 
+  // var body: some View {
+  //   Rectangle()
+  //     .frame(width: 256, height: 256)
+  //     .foregroundColor(.gray.opacity(0.2))
+  //     .overlay {
+  //       Text("\(index)")
+  //     }
+  //     .cornerRadius(8)
+  //     .hoverEffect(.highlight)
+  //     .focusable()
+  //     .focused($focusedIndex, equals: index)
+  // }
+
   var body: some View {
     if let asset = asset {
       // Render actual asset

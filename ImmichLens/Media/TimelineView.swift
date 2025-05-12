@@ -24,7 +24,7 @@ struct TimelineView: View {
 
   var body: some View {
     NavigationStack(path: $navigationPath) {
-      ScrollView(.vertical) {
+      Group {
         if !isReady {
           ProgressView()
             .padding(.top, 100)
