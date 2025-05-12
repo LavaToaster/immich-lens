@@ -56,7 +56,9 @@ struct MediaThumbnailView: View {
                 .aspectRatio(contentMode: .fill)
                 .cornerRadius(8)
                 .clipped()
+                #if !os(macOS)
                 .hoverEffectDisabled()
+                #endif
             }
           }
 
@@ -66,7 +68,9 @@ struct MediaThumbnailView: View {
           }
         }
         .focusable()
+        #if !os(macOS)
         .hoverEffect(.highlight)
+        #endif
         .focused($focusedIndex, equals: index)
       }
       .buttonStyle(.borderless)
@@ -81,7 +85,9 @@ struct MediaThumbnailView: View {
             .scaleEffect(1.5)
         }
         .cornerRadius(8)
+        #if !os(macOS)
         .hoverEffect(.highlight)
+        #endif
         .focusable()
         .focused($focusedIndex, equals: index)
     }
