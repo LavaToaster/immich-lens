@@ -16,6 +16,7 @@ struct TimelineGridView: View {
   let onLoadMore: (Int) -> Void
   
   @State private var lastVisibleIndex: Int = 0
+  @State private var startCount: Int = 50
   @FocusState.Binding var focusedIndex: Int?
 
   // Layout constants
@@ -29,7 +30,8 @@ struct TimelineGridView: View {
 
   var body: some View {
     LazyVGrid(columns: columns, spacing: gridSpacing) {
-      ForEach(0..<count, id: \.self) { index in
+      // Only render active chunks plus a small buffer - creates much fewer view objects
+      ForEach(0..<min(startCount, count), id: \.self) { index in
         MediaThumbnailView(
           focusedIndex: $focusedIndex,
           index: index,
@@ -42,10 +44,28 @@ struct TimelineGridView: View {
       }
     }
   }
+  
+  // Calculate estimated remaining height based on grid layout
+  private func calculateEstimatedHeight(for remainingItems: Int, width: CGFloat) -> CGFloat {
+    // Calculate how many columns we have based on provided width
+    let columnsCount = max(1, Int(width / (minItemWidth + gridSpacing)))
+    
+    // Calculate how many rows the remaining items will take
+    let rowsCount = ceil(Double(remainingItems) / Double(columnsCount))
+    
+    // Calculate total height: rows * (thumbnail height + spacing)
+    return CGFloat(rowsCount) * (256 + gridSpacing)
+  }
 
   private func updateVisibleIndex(_ index: Int) {
     if index > lastVisibleIndex {
       lastVisibleIndex = index
+      
+      // If we're approaching the end of displayed items, load more
+      if index > startCount - 40 && startCount < count {
+        logger.debug("Loading more items at index \(index)")
+        startCount = min(startCount + 100, count)
+      }
 
       let loadTriggerThreshold = assets.count - 20
       if index > Int(loadTriggerThreshold) {
