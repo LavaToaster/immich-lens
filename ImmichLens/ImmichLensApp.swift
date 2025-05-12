@@ -66,7 +66,13 @@ struct ImmichLensApp: App {
           }
       }
     }
+    #if !os(tvOS)
+    // Don't know how to hide the tab bar on tvOS without just rerending this view
+    // without the tabview parts... 
     .tabViewStyle(.sidebarAdaptable)
+    #else
+    .tabViewStyle(.tabBarOnly)
+    #endif
   }
 }
 

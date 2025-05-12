@@ -15,12 +15,17 @@ struct AssetViewerView: View {
   private let logger = Logger(subsystem: "dev.lav.immichlens", category: "AssetViewerView")
 
   var body: some View {
-    if asset.type == .video {
-      // Show video player for video assets
-      VideoPlayerView(asset: asset)
-    } else {
-      // Show image viewer for photos
-      ImageViewerView(asset: asset)
+    Group {
+      if asset.type == .video {
+        // Show video player for video assets
+        VideoPlayerView(asset: asset)
+      } else {
+        // Show image viewer for photos
+        ImageViewerView(asset: asset)
+      }
     }
+    #if !os(macOS)
+    .toolbarVisibility(.hidden, for: .tabBar)
+    #endif
   }
 }
