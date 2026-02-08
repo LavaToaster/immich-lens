@@ -16,6 +16,10 @@ xcodebuild -project ImmichLens.xcodeproj -scheme ImmichLens -destination 'platfo
 
 No tests or linting are configured.
 
+## Xcode Project Structure
+
+The project uses Xcode's **file system synchronized groups** (`fileSystemSynchronizedGroups` in `project.pbxproj`). New `.swift` files added to existing directories are picked up automatically — no manual `project.pbxproj` edits needed.
+
 ## Important
 
 The API client is auto-generated from `ImmichLens/openapi.json` using `swift-openapi-generator`. Do not hand-edit generated code — modify the OpenAPI spec or `openapi-generator-config.yaml` instead.
