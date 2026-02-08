@@ -45,7 +45,7 @@ struct ImmichLensApp: App {
             }
 
             Tab("People", systemImage: "person.2", value: .people) {
-                Text("People").focusable()
+                PeopleView()
             }
 
             TabSection("Library") {
