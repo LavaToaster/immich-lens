@@ -25,7 +25,18 @@ final class KeychainManager {
       kSecValueData as String: data,
     ]
 
-    let status = SecItemAdd(query as CFDictionary, nil)
+    var status = SecItemAdd(query as CFDictionary, nil)
+
+    if status == errSecDuplicateItem {
+      let searchQuery: [String: Any] = [
+        kSecClass as String: kSecClassGenericPassword,
+        kSecAttrAccount as String: key,
+      ]
+      let updateAttributes: [String: Any] = [
+        kSecValueData as String: data,
+      ]
+      status = SecItemUpdate(searchQuery as CFDictionary, updateAttributes as CFDictionary)
+    }
 
     guard status == errSecSuccess else {
       throw KeychainError.unknown(status)
