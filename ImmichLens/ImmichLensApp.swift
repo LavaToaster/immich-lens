@@ -67,7 +67,11 @@ struct ImmichLensApp: App {
                     }
             }
         }
+        #if os(tvOS)
+        .tabViewStyle(.tabBarOnly)
+        #else
         .tabViewStyle(.sidebarAdaptable)
+        #endif
     }
 }
 

@@ -9,7 +9,7 @@ import SwiftUI
 struct AssetDetailView: View {
     let assets: [Asset]
     @Binding var currentIndex: Int
-    var onDismiss: () -> Void = {}
+    @Environment(\.dismiss) private var dismiss
     @State private var isPlayingVideo = false
     #if os(tvOS)
     @State private var player = AVPlayer()
@@ -41,12 +41,11 @@ struct AssetDetailView: View {
                 }
 
                 #if os(macOS)
-                // Close button
                 VStack {
                     HStack {
                         Spacer()
                         Button {
-                            onDismiss()
+                            dismiss()
                         } label: {
                             Image(systemName: "xmark.circle.fill")
                                 .font(.title)
@@ -63,6 +62,7 @@ struct AssetDetailView: View {
             .animation(.easeInOut(duration: 0.3), value: currentIndex)
         }
         .ignoresSafeArea()
+        .navigationBarBackButtonHidden()
         #if os(tvOS)
         .focusable(!isPlayingVideo)
         .onPlayPauseCommand {
@@ -92,7 +92,7 @@ struct AssetDetailView: View {
             return .handled
         }
         .onKeyPress(.escape) {
-            onDismiss()
+            dismiss()
             return .handled
         }
         #endif

@@ -4,48 +4,22 @@ import SwiftUI
 
 struct ImmichTimelineView: View {
     @EnvironmentObject var apiService: APIService
-    @Namespace private var namespace
     @State private var assets: [Asset] = []
     @State private var isLoading = true
-    @State private var selectedAssetIndex: Int?
+    @State private var navigationPath: [Int] = []
+    @State private var currentIndex: Int = 0
+    @FocusState private var focusedIndex: Int?
 
     var body: some View {
-        Group {
-            #if os(macOS)
-            if let index = selectedAssetIndex {
-                AssetDetailView(
-                    assets: assets,
-                    currentIndex: Binding(
-                        get: { selectedAssetIndex ?? index },
-                        set: { selectedAssetIndex = $0 }
-                    ),
-                    onDismiss: { selectedAssetIndex = nil }
-                )
-                .environmentObject(apiService)
-            } else {
-                gridContent
-            }
-            #else
+        NavigationStack(path: $navigationPath) {
             gridContent
-                .fullScreenCover(
-                    isPresented: Binding(
-                        get: { selectedAssetIndex != nil },
-                        set: { if !$0 { selectedAssetIndex = nil } }
+                .navigationDestination(for: Int.self) { _ in
+                    AssetDetailView(
+                        assets: assets,
+                        currentIndex: $currentIndex
                     )
-                ) {
-                    if let index = selectedAssetIndex {
-                        AssetDetailView(
-                            assets: assets,
-                            currentIndex: Binding(
-                                get: { selectedAssetIndex ?? index },
-                                set: { selectedAssetIndex = $0 }
-                            ),
-                            onDismiss: { selectedAssetIndex = nil }
-                        )
-                        .environmentObject(apiService)
-                    }
+                    .environmentObject(apiService)
                 }
-            #endif
         }
         .task {
             await loadAssets()
@@ -53,11 +27,11 @@ struct ImmichTimelineView: View {
     }
 
     private var gridContent: some View {
-        ScrollView {
+        Group {
             if isLoading && assets.isEmpty {
                 ProgressView("Loading your media...")
                     .frame(maxWidth: .infinity, maxHeight: .infinity)
-                    .padding(.top, 100)
+                    .focusable()
             } else if !isLoading && assets.isEmpty {
                 ContentUnavailableView(
                     "No Assets",
@@ -67,16 +41,16 @@ struct ImmichTimelineView: View {
             } else {
                 AssetGridView(
                     assets: assets,
-                    columns: 4,
+                    focusedIndex: $focusedIndex,
                     onAssetTap: { asset in
                         if let index = assets.firstIndex(where: { $0.id == asset.id }) {
-                            selectedAssetIndex = index
+                            currentIndex = index
+                            navigationPath.append(index)
                         }
                     }
                 )
             }
         }
-        .scrollClipDisabled()
     }
 
     private func loadAssets() async {
@@ -100,6 +74,7 @@ struct ImmichTimelineView: View {
                 return
             }
 
+            var allAssets: [Asset] = []
             for bucket in bucketsResponse {
                 logger.info("Time bucket: \(bucket.timeBucket), asset count: \(bucket.count)")
 
@@ -116,7 +91,11 @@ struct ImmichTimelineView: View {
                 logger.info(
                     "Loaded \(bucketAssets.id.count) assets for time bucket \(bucket.timeBucket)")
 
-                self.assets.append(contentsOf: assets)
+                allAssets.append(contentsOf: assets)
+            }
+            self.assets = allAssets
+            if !allAssets.isEmpty {
+                focusedIndex = 0
             }
         } catch {
             logger.error("Failed to fetch time buckets: \(error.localizedDescription)")
