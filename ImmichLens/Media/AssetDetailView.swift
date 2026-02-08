@@ -9,6 +9,7 @@ import SwiftUI
 struct AssetDetailView: View {
     let assets: [Asset]
     @Binding var currentIndex: Int
+    var onDismiss: () -> Void = {}
     @State private var isPlayingVideo = false
     #if os(tvOS)
     @State private var player = AVPlayer()
@@ -38,15 +39,33 @@ struct AssetDetailView: View {
                     .clipped()
                     .offset(x: CGFloat(index - currentIndex) * geometry.size.width)
                 }
+
+                #if os(macOS)
+                // Close button
+                VStack {
+                    HStack {
+                        Spacer()
+                        Button {
+                            onDismiss()
+                        } label: {
+                            Image(systemName: "xmark.circle.fill")
+                                .font(.title)
+                                .foregroundStyle(.white.opacity(0.8))
+                                .shadow(radius: 4)
+                        }
+                        .buttonStyle(.plain)
+                        .padding()
+                    }
+                    Spacer()
+                }
+                #endif
             }
             .animation(.easeInOut(duration: 0.3), value: currentIndex)
         }
         .ignoresSafeArea()
+        #if os(tvOS)
         .focusable(!isPlayingVideo)
         .onPlayPauseCommand {
-            handleSelect()
-        }
-        .onTapGesture {
             handleSelect()
         }
         .onMoveCommand { direction in
@@ -59,6 +78,26 @@ struct AssetDetailView: View {
             default:
                 break
             }
+        }
+        #endif
+        #if os(macOS)
+        .onKeyPress(.leftArrow) {
+            guard !isPlayingVideo, currentIndex > 0 else { return .ignored }
+            currentIndex -= 1
+            return .handled
+        }
+        .onKeyPress(.rightArrow) {
+            guard !isPlayingVideo, currentIndex < assets.count - 1 else { return .ignored }
+            currentIndex += 1
+            return .handled
+        }
+        .onKeyPress(.escape) {
+            onDismiss()
+            return .handled
+        }
+        #endif
+        .onTapGesture {
+            handleSelect()
         }
         .onChange(of: currentIndex) {
             isPlayingVideo = false

@@ -10,6 +10,49 @@ struct ImmichTimelineView: View {
     @State private var selectedAssetIndex: Int?
 
     var body: some View {
+        Group {
+            #if os(macOS)
+            if let index = selectedAssetIndex {
+                AssetDetailView(
+                    assets: assets,
+                    currentIndex: Binding(
+                        get: { selectedAssetIndex ?? index },
+                        set: { selectedAssetIndex = $0 }
+                    ),
+                    onDismiss: { selectedAssetIndex = nil }
+                )
+                .environmentObject(apiService)
+            } else {
+                gridContent
+            }
+            #else
+            gridContent
+                .fullScreenCover(
+                    isPresented: Binding(
+                        get: { selectedAssetIndex != nil },
+                        set: { if !$0 { selectedAssetIndex = nil } }
+                    )
+                ) {
+                    if let index = selectedAssetIndex {
+                        AssetDetailView(
+                            assets: assets,
+                            currentIndex: Binding(
+                                get: { selectedAssetIndex ?? index },
+                                set: { selectedAssetIndex = $0 }
+                            ),
+                            onDismiss: { selectedAssetIndex = nil }
+                        )
+                        .environmentObject(apiService)
+                    }
+                }
+            #endif
+        }
+        .task {
+            await loadAssets()
+        }
+    }
+
+    private var gridContent: some View {
         ScrollView {
             if isLoading && assets.isEmpty {
                 ProgressView("Loading your media...")
@@ -25,7 +68,6 @@ struct ImmichTimelineView: View {
                 AssetGridView(
                     assets: assets,
                     columns: 4,
-                    spacing: 8,
                     onAssetTap: { asset in
                         if let index = assets.firstIndex(where: { $0.id == asset.id }) {
                             selectedAssetIndex = index
@@ -34,27 +76,7 @@ struct ImmichTimelineView: View {
                 )
             }
         }
-        .task {
-            await loadAssets()
-        }
         .scrollClipDisabled()
-        .fullScreenCover(
-            isPresented: Binding(
-                get: { selectedAssetIndex != nil },
-                set: { if !$0 { selectedAssetIndex = nil } }
-            )
-        ) {
-            if let index = selectedAssetIndex {
-                AssetDetailView(
-                    assets: assets,
-                    currentIndex: Binding(
-                        get: { selectedAssetIndex ?? index },
-                        set: { selectedAssetIndex = $0 }
-                    )
-                )
-                .environmentObject(apiService)
-            }
-        }
     }
 
     private func loadAssets() async {

@@ -3,6 +3,7 @@
 //  ImmichLens
 //
 
+import Nuke
 import NukeUI
 import SwiftUI
 
@@ -12,10 +13,16 @@ struct AssetGridView: View {
     let spacing: CGFloat
     let onAssetTap: (Asset) -> Void
 
+    #if os(tvOS)
+    static let defaultSpacing: CGFloat = 40
+    #else
+    static let defaultSpacing: CGFloat = 8
+    #endif
+
     init(
         assets: [Asset],
         columns: Int = 4,
-        spacing: CGFloat = 8,
+        spacing: CGFloat = AssetGridView.defaultSpacing,
         onAssetTap: @escaping (Asset) -> Void = { _ in }
     ) {
         self.assets = assets
@@ -37,7 +44,11 @@ struct AssetGridView: View {
                     AssetGridCell(asset: asset)
                         .aspectRatio(1, contentMode: .fit)
                 }
+                #if os(tvOS)
+                .buttonStyle(.borderless)
+                #else
                 .buttonStyle(.plain)
+                #endif
             }
         }
         .padding(spacing)
@@ -46,60 +57,55 @@ struct AssetGridView: View {
 
 struct AssetGridCell: View {
     let asset: Asset
-    @Environment(\.isFocused) private var isFocused
+
+    /// Nuke request that crops the thumbnail to a square at the decode level.
+    /// The resulting image is already 1:1 so no view-level .clipped() is needed,
+    /// which allows the tvOS borderless button style to render focus effects
+    /// (shadow, lift, specular lighting) outside the view bounds.
+    private var thumbnailRequest: ImageRequest? {
+        guard let url = asset.imageUrl(.thumbnail) else { return nil }
+        return ImageRequest(url: url, processors: [
+            .resize(size: CGSize(width: 300, height: 300), crop: true),
+        ])
+    }
 
     var body: some View {
-        GeometryReader { geometry in
-            ZStack(alignment: .bottomTrailing) {
-                // Thumbnail image
-                if let thumbnailUrl = asset.imageUrl(.thumbnail) {
-                    LazyImage(url: thumbnailUrl) { state in
-                        if let image = state.image {
-                            image
-                                .resizable()
-                                .aspectRatio(contentMode: .fill)
-                                .frame(
-                                    width: geometry.size.width,
-                                    height: geometry.size.height
-                                )
-                                .clipped()
-                        } else if state.error != nil {
-                            placeholderView(
-                                geometry: geometry, systemName: "exclamationmark.triangle")
-                        } else {
-                            placeholderView(geometry: geometry, systemName: "photo")
-                        }
+        ZStack(alignment: .bottomTrailing) {
+            // Thumbnail image
+            if let request = thumbnailRequest {
+                LazyImage(request: request) { state in
+                    if let image = state.image {
+                        image
+                            .resizable()
+                            .scaledToFill()
+                    } else if state.error != nil {
+                        placeholderView(systemName: "exclamationmark.triangle")
+                    } else {
+                        placeholderView(systemName: "photo")
                     }
-                } else {
-                    placeholderView(geometry: geometry, systemName: "photo")
                 }
-
-                // Video indicator overlay
-                if asset.type == .video {
-                    VideoIndicatorOverlay(duration: asset.duration)
-                        .padding(8)
-                }
-
-                // Focus effect for tvOS
-                if isFocused {
-                    RoundedRectangle(cornerRadius: 12)
-                        .stroke(Color.white, lineWidth: 4)
-                }
+            } else {
+                placeholderView(systemName: "photo")
             }
-            .clipShape(RoundedRectangle(cornerRadius: 12))
+
+            // Video indicator overlay
+            if asset.type == .video {
+                VideoIndicatorOverlay(duration: asset.duration)
+                    .padding(8)
+            }
         }
     }
 
-    private func placeholderView(geometry: GeometryProxy, systemName: String) -> some View {
+    private func placeholderView(systemName: String) -> some View {
         ZStack {
             Color.gray.opacity(0.2)
             Image(systemName: systemName)
                 .resizable()
                 .scaledToFit()
-                .frame(width: geometry.size.width * 0.3)
+                .frame(maxWidth: .infinity, maxHeight: .infinity)
+                .padding()
                 .foregroundColor(.gray)
         }
-        .frame(width: geometry.size.width, height: geometry.size.height)
     }
 }
 
