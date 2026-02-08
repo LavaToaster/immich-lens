@@ -40,29 +40,13 @@ struct AssetDetailView: View {
                     .offset(x: CGFloat(index - currentIndex) * geometry.size.width)
                 }
 
-                #if os(macOS)
-                VStack {
-                    HStack {
-                        Spacer()
-                        Button {
-                            dismiss()
-                        } label: {
-                            Image(systemName: "xmark.circle.fill")
-                                .font(.title)
-                                .foregroundStyle(.white.opacity(0.8))
-                                .shadow(radius: 4)
-                        }
-                        .buttonStyle(.plain)
-                        .padding()
-                    }
-                    Spacer()
-                }
-                #endif
             }
             .animation(.easeInOut(duration: 0.3), value: currentIndex)
         }
+        #if os(tvOS)
         .ignoresSafeArea()
         .navigationBarBackButtonHidden()
+        #endif
         #if os(tvOS)
         .focusable(!isPlayingVideo)
         .onPlayPauseCommand {
@@ -81,6 +65,7 @@ struct AssetDetailView: View {
         }
         #endif
         #if os(macOS)
+        .focusable()
         .onKeyPress(.leftArrow) {
             guard !isPlayingVideo, currentIndex > 0 else { return .ignored }
             currentIndex -= 1

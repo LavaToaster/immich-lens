@@ -54,6 +54,38 @@ struct AssetGridView: View {
     }
 
     var body: some View {
+        #if os(macOS)
+        macOSGrid
+        #else
+        tvOSGrid
+        #endif
+    }
+
+    #if os(macOS)
+    private var macOSGrid: some View {
+        ScrollView {
+            LazyVGrid(
+                columns: Array(repeating: GridItem(.flexible(), spacing: spacing), count: columns),
+                spacing: spacing
+            ) {
+                ForEach(Array(assets.enumerated()), id: \.offset) { index, asset in
+                    Button {
+                        onAssetTap(asset)
+                    } label: {
+                        AssetGridCell(asset: asset)
+                            .aspectRatio(1, contentMode: .fill)
+                            .clipped()
+                    }
+                    .contentShape(Rectangle())
+                    .buttonStyle(.plain)
+                    .focused(focusedIndex, equals: index)
+                }
+            }
+            .padding()
+        }
+    }
+    #else
+    private var tvOSGrid: some View {
         ScrollView {
             VStack(spacing: 0) {
                 if visibleRows.lowerBound > 0 {
@@ -100,8 +132,10 @@ struct AssetGridView: View {
             visibleRows = newRange
         }
     }
+    #endif
 }
 
+#if !os(macOS)
 private struct AssetGridRow: View {
     let assets: [Asset]
     let row: Int
@@ -134,6 +168,7 @@ private struct AssetGridRow: View {
         }
     }
 }
+#endif
 
 struct AssetGridCell: View {
     let asset: Asset

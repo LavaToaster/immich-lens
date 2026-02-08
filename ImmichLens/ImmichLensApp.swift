@@ -36,35 +36,47 @@ struct ImmichLensApp: App {
 
     private var mainTabView: some View {
         TabView(selection: $selection) {
-            Tab("Media", systemImage: "photo", value: .media) {
+            Tab(value: .media) {
                 ImmichTimelineView()
+            } label: {
+                Text("Media")
             }
 
-            Tab("Explore", systemImage: "mountain.2.circle", value: .explore) {
+            Tab(value: .explore) {
                 Text("Explore").focusable()
+            } label: {
+                Text("Explore")
             }
 
-            Tab("People", systemImage: "person.2", value: .people) {
+            Tab(value: .people) {
                 PeopleView()
+            } label: {
+                Text("People")
             }
 
             TabSection("Library") {
-                Tab("Albums", systemImage: "photo.on.rectangle", value: RootTabs.library(.albums)) {
-                    Text("Albums").focusable()
+                Tab(value: RootTabs.library(.albums)) {
+                    AlbumsView()
+                } label: {
+                    Text("Albums")
                 }
 
-                Tab("Favourites", systemImage: "star", value: RootTabs.library(.favourites)) {
+                Tab(value: RootTabs.library(.favourites)) {
                     Text("Favourites").focusable()
+                } label: {
+                    Text("Favourites")
                 }
             }
 
-            Tab("Logout", systemImage: "rectangle.portrait.and.arrow.right", value: .logout) {
+            Tab(value: .logout) {
                 Text("Please wait while we log you out...")
                     .onAppear {
                         self.apiService.logout()
                         // Reset the selection to the media tab after logging out
                         self.selection = .media
                     }
+            } label: {
+                Text("Logout")
             }
         }
         #if os(tvOS)
