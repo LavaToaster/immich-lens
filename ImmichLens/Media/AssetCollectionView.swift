@@ -52,7 +52,11 @@ struct AssetCollectionView<Source: AssetSource>: View {
 
     var body: some View {
         gridContent
+            #if os(macOS)
             .navigationTitle(source.title)
+            #else
+            .toolbar(.hidden, for: .navigationBar)
+            #endif
             .navigationDestination(for: Int.self) { _ in
                 AssetDetailView(
                     assets: assets,
@@ -80,6 +84,7 @@ struct AssetCollectionView<Source: AssetSource>: View {
             } else {
                 AssetGridView(
                     assets: assets,
+                    title: source.title,
                     focusedIndex: $focusedIndex,
                     onAssetTap: { asset in
                         if let index = assets.firstIndex(where: { $0.id == asset.id }) {

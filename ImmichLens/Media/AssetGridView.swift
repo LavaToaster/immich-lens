@@ -11,6 +11,7 @@ struct AssetGridView: View {
     let assets: [Asset]
     let columns: Int
     let spacing: CGFloat
+    let title: String?
     var focusedIndex: FocusState<Int?>.Binding
     let onAssetTap: (Asset) -> Void
 
@@ -24,12 +25,14 @@ struct AssetGridView: View {
         assets: [Asset],
         columns: Int = 5,
         spacing: CGFloat = AssetGridView.defaultSpacing,
+        title: String? = nil,
         focusedIndex: FocusState<Int?>.Binding,
         onAssetTap: @escaping (Asset) -> Void = { _ in }
     ) {
         self.assets = assets
         self.columns = columns
         self.spacing = spacing
+        self.title = title
         self.focusedIndex = focusedIndex
         self.onAssetTap = onAssetTap
     }
@@ -85,9 +88,30 @@ struct AssetGridView: View {
         }
     }
     #else
+    private static let headerHeight: CGFloat = 80
+
+    private var hasHeader: Bool {
+        if let title, !title.isEmpty { return true }
+        return false
+    }
+
+    private var headerOffset: CGFloat {
+        hasHeader ? Self.headerHeight + spacing : 0
+    }
+
     private var tvOSGrid: some View {
         ScrollView {
             VStack(spacing: 0) {
+                if let title, !title.isEmpty {
+                    Text(title)
+                        .font(.title)
+                        .bold()
+                        .frame(maxWidth: .infinity, alignment: .leading)
+                        .padding(.horizontal, spacing)
+                        .frame(height: Self.headerHeight)
+                        .padding(.bottom, spacing)
+                }
+
                 if visibleRows.lowerBound > 0 {
                     Color.clear
                         .frame(height: CGFloat(visibleRows.lowerBound) * rowHeight)
@@ -112,7 +136,7 @@ struct AssetGridView: View {
                         .frame(height: CGFloat(rowsBelow) * rowHeight)
                 }
             }
-            .frame(height: CGFloat(totalRows) * rowHeight, alignment: .top)
+            .frame(height: CGFloat(totalRows) * rowHeight + headerOffset, alignment: .top)
         }
         .onGeometryChange(for: CGFloat.self) { geo in
             geo.size.width
@@ -120,7 +144,7 @@ struct AssetGridView: View {
             containerWidth = newWidth
         }
         .onScrollGeometryChange(for: Range<Int>.self) { geo in
-            let offset = geo.contentOffset.y
+            let offset = max(0, geo.contentOffset.y - headerOffset)
             let vpHeight = geo.containerSize.height
             let rowH = self.rowHeight
             let rows = self.totalRows
