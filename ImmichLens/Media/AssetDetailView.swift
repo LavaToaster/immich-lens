@@ -46,6 +46,7 @@ struct AssetDetailView: View {
         #if os(tvOS)
         .ignoresSafeArea()
         .navigationBarBackButtonHidden()
+        .toolbar(.hidden, for: .tabBar)
         #endif
         #if os(tvOS)
         .focusable(!isPlayingVideo)

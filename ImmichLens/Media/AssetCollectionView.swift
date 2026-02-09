@@ -57,12 +57,13 @@ struct AssetCollectionView<Source: AssetSource>: View {
             #else
             .toolbar(.hidden, for: .navigationBar)
             #endif
-            .navigationDestination(for: Int.self) { _ in
+            .navigationDestination(for: Int.self) { index in
                 AssetDetailView(
                     assets: assets,
                     currentIndex: $currentIndex
                 )
                 .environmentObject(apiService)
+                .onAppear { currentIndex = index }
             }
             .task {
                 await load()
@@ -85,12 +86,7 @@ struct AssetCollectionView<Source: AssetSource>: View {
                 AssetGridView(
                     assets: assets,
                     title: source.title,
-                    focusedIndex: $focusedIndex,
-                    onAssetTap: { asset in
-                        if let index = assets.firstIndex(where: { $0.id == asset.id }) {
-                            currentIndex = index
-                        }
-                    }
+                    focusedIndex: $focusedIndex
                 )
             }
         }

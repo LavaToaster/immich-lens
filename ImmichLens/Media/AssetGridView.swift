@@ -13,7 +13,6 @@ struct AssetGridView: View {
     let spacing: CGFloat
     let title: String?
     var focusedIndex: FocusState<Int?>.Binding
-    let onAssetTap: (Asset) -> Void
 
     #if os(tvOS)
     static let defaultSpacing: CGFloat = 40
@@ -26,15 +25,13 @@ struct AssetGridView: View {
         columns: Int = 5,
         spacing: CGFloat = AssetGridView.defaultSpacing,
         title: String? = nil,
-        focusedIndex: FocusState<Int?>.Binding,
-        onAssetTap: @escaping (Asset) -> Void = { _ in }
+        focusedIndex: FocusState<Int?>.Binding
     ) {
         self.assets = assets
         self.columns = columns
         self.spacing = spacing
         self.title = title
         self.focusedIndex = focusedIndex
-        self.onAssetTap = onAssetTap
     }
 
     private var totalRows: Int {
@@ -72,9 +69,7 @@ struct AssetGridView: View {
                 spacing: spacing
             ) {
                 ForEach(Array(assets.enumerated()), id: \.offset) { index, asset in
-                    Button {
-                        onAssetTap(asset)
-                    } label: {
+                    NavigationLink(value: index) {
                         AssetGridCell(asset: asset)
                             .aspectRatio(1, contentMode: .fill)
                             .clipped()
@@ -124,8 +119,7 @@ struct AssetGridView: View {
                         columns: columns,
                         cellSize: cellSize,
                         spacing: spacing,
-                        focusedIndex: focusedIndex,
-                        onAssetTap: onAssetTap
+                        focusedIndex: focusedIndex
                     )
                     .frame(height: rowHeight)
                 }
@@ -167,7 +161,6 @@ private struct AssetGridRow: View {
     let cellSize: CGFloat
     let spacing: CGFloat
     var focusedIndex: FocusState<Int?>.Binding
-    let onAssetTap: (Asset) -> Void
 
     var body: some View {
         let startIndex = row * columns
@@ -175,11 +168,8 @@ private struct AssetGridRow: View {
 
         HStack(spacing: spacing) {
             ForEach(startIndex..<endIndex, id: \.self) { index in
-                let asset = assets[index]
-                Button {
-                    onAssetTap(asset)
-                } label: {
-                    AssetGridCell(asset: asset)
+                NavigationLink(value: index) {
+                    AssetGridCell(asset: assets[index])
                         .frame(width: cellSize, height: cellSize)
                 }
                 .focused(focusedIndex, equals: index)
