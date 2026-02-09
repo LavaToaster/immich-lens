@@ -20,6 +20,10 @@ No tests or linting are configured.
 
 The project uses Xcode's **file system synchronized groups** (`fileSystemSynchronizedGroups` in `project.pbxproj`). New `.swift` files added to existing directories are picked up automatically — no manual `project.pbxproj` edits needed.
 
+## tvOS Image Guidelines
+
+On tvOS, don't manually clip or constrain images with `.frame`, `.clipShape`, or `.cornerRadius` — these fight the system focus engine (scaling, shadows, highlights). Use Nuke processors (e.g. `.resize(size:crop:)`) to get the image to the right dimensions, then hand the result straight to SwiftUI. Only use `.frame` on placeholders where there's no image to size from.
+
 ## Important
 
 The API client is auto-generated from `ImmichLens/openapi.json` using `swift-openapi-generator`. Do not hand-edit generated code — modify the OpenAPI spec or `openapi-generator-config.yaml` instead.

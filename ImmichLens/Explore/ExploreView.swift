@@ -159,16 +159,13 @@ private struct PlaceCell: View {
     let place: Place
 
     #if os(tvOS)
-    private static let width: CGFloat = 240
-    private static let height: CGFloat = 160
+    private static let size = CGSize(width: 240, height: 160)
     #else
-    private static let width: CGFloat = 180
-    private static let height: CGFloat = 120
+    private static let size = CGSize(width: 180, height: 120)
     #endif
 
-    private static let thumbnailSize = CGSize(width: 240, height: 160)
     private static let thumbnailProcessors: [ImageProcessing] = [
-        .resize(size: thumbnailSize, crop: true),
+        .resize(size: size, crop: true),
     ]
 
     private var thumbnailRequest: ImageRequest? {
@@ -178,41 +175,23 @@ private struct PlaceCell: View {
 
     var body: some View {
         VStack(spacing: 8) {
-            if let request = thumbnailRequest {
-                LazyImage(request: request) { state in
-                    if let image = state.image {
-                        image
-                            .resizable()
-                            .scaledToFill()
-                    } else if state.error != nil {
-                        placeholderView
-                    } else {
-                        placeholderView
-                    }
+            LazyImage(request: thumbnailRequest) { state in
+                if let image = state.image {
+                    image
+                } else {
+                    Color.gray.opacity(0.2)
+                        .frame(width: Self.size.width, height: Self.size.height)
+                        .overlay {
+                            Image(systemName: "mappin.circle.fill")
+                                .foregroundColor(.gray)
+                        }
                 }
-                .frame(width: Self.width, height: Self.height)
-                .clipShape(RoundedRectangle(cornerRadius: 12))
-            } else {
-                placeholderView
-                    .frame(width: Self.width, height: Self.height)
-                    .clipShape(RoundedRectangle(cornerRadius: 12))
             }
 
             Text(place.city)
                 .font(.caption)
                 .lineLimit(1)
                 .truncationMode(.tail)
-        }
-    }
-
-    private var placeholderView: some View {
-        ZStack {
-            Color.gray.opacity(0.2)
-            Image(systemName: "mappin.circle.fill")
-                .resizable()
-                .scaledToFit()
-                .padding(30)
-                .foregroundColor(.gray)
         }
     }
 }
