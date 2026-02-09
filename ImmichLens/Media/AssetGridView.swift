@@ -16,13 +16,15 @@ struct AssetGridView: View {
 
     #if os(tvOS)
     static let defaultSpacing: CGFloat = 40
+    static let defaultColumns: Int = 5
     #else
-    static let defaultSpacing: CGFloat = 8
+    static let defaultSpacing: CGFloat = 2
+    static let defaultColumns: Int = 0  // 0 = auto-calculate on macOS
     #endif
 
     init(
         assets: [Asset],
-        columns: Int = 5,
+        columns: Int = AssetGridView.defaultColumns,
         spacing: CGFloat = AssetGridView.defaultSpacing,
         title: String? = nil,
         focusedIndex: FocusState<Int?>.Binding
@@ -62,10 +64,14 @@ struct AssetGridView: View {
     }
 
     #if os(macOS)
+    private static let targetCellSize: CGFloat = 200
+
+    @State private var macColumns: Int = 5
+
     private var macOSGrid: some View {
         ScrollView {
             LazyVGrid(
-                columns: Array(repeating: GridItem(.flexible(), spacing: spacing), count: columns),
+                columns: Array(repeating: GridItem(.flexible(), spacing: spacing), count: macColumns),
                 spacing: spacing
             ) {
                 ForEach(Array(assets.enumerated()), id: \.offset) { index, asset in
@@ -79,7 +85,16 @@ struct AssetGridView: View {
                     .focused(focusedIndex, equals: index)
                 }
             }
-            .padding()
+        }
+        .onGeometryChange(for: CGFloat.self) { geo in
+            geo.size.width
+        } action: { width in
+            if columns > 0 {
+                macColumns = columns
+            } else {
+                let count = max(3, Int(floor((width + spacing) / (Self.targetCellSize + spacing))))
+                macColumns = count
+            }
         }
     }
     #else

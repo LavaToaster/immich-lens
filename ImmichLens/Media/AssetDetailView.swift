@@ -11,6 +11,9 @@ struct AssetDetailView: View {
     @Binding var currentIndex: Int
     @Environment(\.dismiss) private var dismiss
     @State private var isPlayingVideo = false
+    #if os(macOS)
+    @FocusState private var isDetailFocused: Bool
+    #endif
     #if os(tvOS)
     @State private var player = AVPlayer()
     @State private var endOfVideoObserver: Any?
@@ -26,8 +29,21 @@ struct AssetDetailView: View {
     var body: some View {
         GeometryReader { geometry in
             ZStack {
+                #if !os(macOS)
                 Color.black
+                    .ignoresSafeArea()
+                #endif
 
+                #if os(macOS)
+                AssetPageView(
+                    asset: assets[currentIndex],
+                    isActive: true,
+                    isPlayingVideo: $isPlayingVideo
+                )
+                .id(currentIndex)
+                .environmentObject(apiService)
+                .frame(width: geometry.size.width, height: geometry.size.height)
+                #else
                 ForEach(nearbyIndices, id: \.self) { index in
                     AssetPageView(
                         asset: assets[index],
@@ -39,14 +55,18 @@ struct AssetDetailView: View {
                     .clipped()
                     .offset(x: CGFloat(index - currentIndex) * geometry.size.width)
                 }
-
+                #endif
             }
+            #if !os(macOS)
             .animation(.easeInOut(duration: 0.3), value: currentIndex)
+            #endif
         }
         #if os(tvOS)
         .ignoresSafeArea()
         .navigationBarBackButtonHidden()
         .toolbar(.hidden, for: .tabBar)
+        #else
+        .toolbarBackgroundVisibility(.hidden, for: .windowToolbar)
         #endif
         #if os(tvOS)
         .focusable(!isPlayingVideo)
@@ -67,6 +87,8 @@ struct AssetDetailView: View {
         #endif
         #if os(macOS)
         .focusable()
+        .focused($isDetailFocused)
+        .onAppear { isDetailFocused = true }
         .onKeyPress(.leftArrow) {
             guard !isPlayingVideo, currentIndex > 0 else { return .ignored }
             currentIndex -= 1
