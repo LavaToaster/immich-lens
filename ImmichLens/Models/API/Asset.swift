@@ -56,6 +56,17 @@ struct Asset: Codable, Hashable, Identifiable {
         self.serverUrl = serverUrl
     }
 
+    init(from dto: Components.Schemas.AssetResponseDto, serverUrl: String) {
+        self.id = dto.id
+        self.thumbhash = dto.thumbhash
+        self.type = dto._type.value1 == .image ? .photo : .video
+        self.duration = dto.duration
+        self.city = dto.exifInfo?.city
+        self.country = dto.exifInfo?.country
+        self.fileCreatedAt = dto.fileCreatedAt
+        self.serverUrl = serverUrl
+    }
+
     /// Get the URL for an image at the specified size
     /// - Parameter size: The desired size of the image
     /// - Returns: URL for the image, or nil if the asset has no thumbhash

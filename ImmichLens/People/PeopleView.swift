@@ -85,7 +85,7 @@ struct PeopleView: View {
     }
 }
 
-private struct PersonCell: View {
+struct PersonCell: View {
     let person: Person
 
     #if os(tvOS)

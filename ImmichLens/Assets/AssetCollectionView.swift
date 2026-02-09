@@ -13,14 +13,15 @@ func fetchTimeBucketAssets(
     serverUrl: String,
     personId: String? = nil,
     albumId: String? = nil,
+    isFavorite: Bool? = nil,
     visibility: Components.Schemas.AssetVisibility? = nil,
     withPartners: Bool? = nil,
     withStacked: Bool? = nil
 ) async throws -> [Asset] {
     let buckets = try await client.getTimeBuckets(
         query: .init(
-            albumId: albumId, personId: personId, visibility: visibility,
-            withPartners: withPartners, withStacked: withStacked)
+            albumId: albumId, isFavorite: isFavorite, personId: personId,
+            visibility: visibility, withPartners: withPartners, withStacked: withStacked)
     ).ok.body.json
 
     guard !buckets.isEmpty else { return [] }
@@ -29,8 +30,9 @@ func fetchTimeBucketAssets(
     for bucket in buckets {
         let bucketAssets = try await client.getTimeBucket(
             query: .init(
-                albumId: albumId, personId: personId, timeBucket: bucket.timeBucket,
-                visibility: visibility, withPartners: withPartners, withStacked: withStacked)
+                albumId: albumId, isFavorite: isFavorite, personId: personId,
+                timeBucket: bucket.timeBucket, visibility: visibility,
+                withPartners: withPartners, withStacked: withStacked)
         ).ok.body.json
         let assets = bucketAssets.id.enumerated().map {
             Asset(from: bucketAssets, idx: $0.offset, serverUrl: serverUrl)

@@ -43,7 +43,7 @@ struct ImmichLensApp: App {
             }
 
             Tab(value: .explore) {
-                Text("Explore").focusable()
+                ExploreView()
             } label: {
                 Text("Explore")
             }
@@ -62,7 +62,7 @@ struct ImmichLensApp: App {
                 }
 
                 Tab(value: RootTabs.library(.favourites)) {
-                    Text("Favourites").focusable()
+                    FavouritesView()
                 } label: {
                     Text("Favourites")
                 }
