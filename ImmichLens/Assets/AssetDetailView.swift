@@ -8,7 +8,13 @@ import SwiftUI
 
 struct AssetDetailView: View {
     let assets: [Asset]
-    @Binding var currentIndex: Int
+    @State private var currentIndex: Int
+
+    init(assets: [Asset], initialAsset: Asset) {
+        self.assets = assets
+        let index = assets.firstIndex(of: initialAsset) ?? 0
+        self._currentIndex = State(initialValue: min(index, max(assets.count - 1, 0)))
+    }
     @Environment(\.dismiss) private var dismiss
     @State private var isPlayingVideo = false
     #if os(macOS)
@@ -27,6 +33,9 @@ struct AssetDetailView: View {
     @EnvironmentObject var apiService: APIService
 
     var body: some View {
+        if assets.isEmpty {
+            ContentUnavailableView("No Photos", systemImage: "photo")
+        } else {
         GeometryReader { geometry in
             ZStack {
                 #if !os(macOS)
@@ -66,6 +75,8 @@ struct AssetDetailView: View {
         .navigationBarBackButtonHidden()
         .toolbar(.hidden, for: .tabBar)
         #else
+        .navigationTitle(currentAsset.locationTitle)
+        .navigationSubtitle(currentAsset.detailSubtitle(index: currentIndex, total: assets.count))
         .toolbarBackgroundVisibility(.hidden, for: .windowToolbar)
         #endif
         #if os(tvOS)
@@ -87,6 +98,7 @@ struct AssetDetailView: View {
         #endif
         #if os(macOS)
         .focusable()
+        .focusEffectDisabled()
         .focused($isDetailFocused)
         .onAppear { isDetailFocused = true }
         .onKeyPress(.leftArrow) {
@@ -121,10 +133,19 @@ struct AssetDetailView: View {
             }
         }
         #endif
+        } // else
+    }
+
+    private var safeIndex: Int {
+        min(currentIndex, max(assets.count - 1, 0))
+    }
+
+    private var currentAsset: Asset {
+        assets[safeIndex]
     }
 
     private func handleSelect() {
-        let asset = assets[currentIndex]
+        let asset = currentAsset
         if asset.type == .video && !isPlayingVideo {
             isPlayingVideo = true
         }
@@ -202,6 +223,7 @@ struct AssetDetailView: View {
     #endif
 
     private var nearbyIndices: [Int] {
+        guard !assets.isEmpty else { return [] }
         let lo = max(0, currentIndex - 1)
         let hi = min(assets.count - 1, currentIndex + 1)
         return Array(lo...hi)

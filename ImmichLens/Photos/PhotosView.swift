@@ -11,9 +11,12 @@ struct TimelineSource: AssetSource {
     }
 }
 
-struct ImmichTimelineView: View {
+struct PhotosView: View {
+    @EnvironmentObject var apiService: APIService
+    @State private var navigationPath = NavigationPath()
+
     var body: some View {
-        NavigationStack {
+        NavigationStack(path: $navigationPath) {
             AssetCollectionView(source: TimelineSource())
         }
     }

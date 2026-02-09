@@ -12,7 +12,7 @@ import os
 
 @main
 struct ImmichLensApp: App {
-    @State var selection: RootTabs = .media
+    @State var selection: RootTabs = .photos
     @StateObject private var apiService = APIService()
 
     var body: some Scene {
@@ -36,10 +36,10 @@ struct ImmichLensApp: App {
 
     private var mainTabView: some View {
         TabView(selection: $selection) {
-            Tab(value: .media) {
-                ImmichTimelineView()
+            Tab(value: .photos) {
+                PhotosView()
             } label: {
-                Text("Media")
+                Text("Photos")
             }
 
             Tab(value: .explore) {
@@ -73,7 +73,7 @@ struct ImmichLensApp: App {
                     .onAppear {
                         self.apiService.logout()
                         // Reset the selection to the media tab after logging out
-                        self.selection = .media
+                        self.selection = .photos
                     }
             } label: {
                 Text("Logout")
@@ -90,7 +90,7 @@ struct ImmichLensApp: App {
 let logger = Logger()
 
 enum RootTabs: Equatable, Hashable, Identifiable {
-    case media
+    case photos
     case explore
     case people
     case library(LibraryTabs)

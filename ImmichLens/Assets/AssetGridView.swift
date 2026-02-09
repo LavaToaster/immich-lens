@@ -75,7 +75,7 @@ struct AssetGridView: View {
                 spacing: spacing
             ) {
                 ForEach(Array(assets.enumerated()), id: \.offset) { index, asset in
-                    NavigationLink(value: index) {
+                    NavigationLink(value: asset) {
                         AssetGridCell(asset: asset)
                             .aspectRatio(1, contentMode: .fill)
                             .clipped()
@@ -183,7 +183,7 @@ private struct AssetGridRow: View {
 
         HStack(spacing: spacing) {
             ForEach(startIndex..<endIndex, id: \.self) { index in
-                NavigationLink(value: index) {
+                NavigationLink(value: assets[index]) {
                     AssetGridCell(asset: assets[index])
                         .frame(width: cellSize, height: cellSize)
                 }

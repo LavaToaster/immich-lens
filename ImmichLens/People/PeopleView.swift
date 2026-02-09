@@ -15,8 +15,10 @@ struct PeopleView: View {
     private let spacing: CGFloat = 24
     #endif
 
+    @State private var navigationPath = NavigationPath()
+
     var body: some View {
-        NavigationStack {
+        NavigationStack(path: $navigationPath) {
             gridContent
                 .navigationDestination(for: Person.self) { person in
                     PersonAssetsView(person: person)

@@ -15,8 +15,10 @@ struct AlbumsView: View {
     private let spacing: CGFloat = 24
     #endif
 
+    @State private var navigationPath = NavigationPath()
+
     var body: some View {
-        NavigationStack {
+        NavigationStack(path: $navigationPath) {
             gridContent
                 .navigationDestination(for: Album.self) { album in
                     AlbumAssetsView(album: album)

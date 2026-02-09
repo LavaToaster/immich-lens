@@ -16,6 +16,15 @@ struct Asset: Codable, Hashable, Identifiable {
     /// The duration of the asset (only for videos)
     let duration: String?
 
+    /// The city where the asset was taken (from EXIF GPS)
+    let city: String?
+
+    /// The country where the asset was taken (from EXIF GPS)
+    let country: String?
+
+    /// The file creation timestamp in UTC
+    let fileCreatedAt: Date?
+
     /// The server URL used for generating asset URLs
     private let serverUrl: String
 
@@ -30,11 +39,20 @@ struct Asset: Codable, Hashable, Identifiable {
         case thumbnail = "thumbnail"
     }
 
+    private static let dateParser: ISO8601DateFormatter = {
+        let f = ISO8601DateFormatter()
+        f.formatOptions = [.withInternetDateTime, .withFractionalSeconds]
+        return f
+    }()
+
     init(from dto: Components.Schemas.TimeBucketAssetResponseDto, idx: Int, serverUrl: String) {
         self.id = dto.id[idx]
         self.thumbhash = dto.thumbhash[idx]
         self.type = dto.isImage[idx] ? .photo : .video
         self.duration = dto.duration[idx]
+        self.city = dto.city[idx]
+        self.country = dto.country[idx]
+        self.fileCreatedAt = Self.dateParser.date(from: dto.fileCreatedAt[idx])
         self.serverUrl = serverUrl
     }
 
@@ -67,5 +85,38 @@ struct Asset: Codable, Hashable, Identifiable {
             url: url,
             options: ["AVURLAssetHTTPHeaderFieldsKey": headers]
         )
+    }
+
+    // MARK: - Display helpers
+
+    /// Location string for the title bar (e.g. "London" or "London, United Kingdom")
+    var locationTitle: String {
+        switch (city, country) {
+        case let (city?, country?): return "\(city) – \(country)"
+        case let (city?, nil): return city
+        case let (nil, country?): return country
+        case (nil, nil): return type == .video ? "Video" : "Photo"
+        }
+    }
+
+    private static let displayDateFormatter: DateFormatter = {
+        let f = DateFormatter()
+        f.dateStyle = .long
+        f.timeStyle = .medium
+        return f
+    }()
+
+    /// Subtitle for the detail title bar (e.g. "8 February 2026 at 13:14:35 · 15,831 of 15,834")
+    func detailSubtitle(index: Int, total: Int) -> String {
+        var parts: [String] = []
+        if let date = fileCreatedAt {
+            parts.append(Self.displayDateFormatter.string(from: date))
+        }
+        let formatter = NumberFormatter()
+        formatter.numberStyle = .decimal
+        let pos = formatter.string(from: NSNumber(value: index + 1)) ?? "\(index + 1)"
+        let tot = formatter.string(from: NSNumber(value: total)) ?? "\(total)"
+        parts.append("\(pos) of \(tot)")
+        return parts.joined(separator: "  ·  ")
     }
 }

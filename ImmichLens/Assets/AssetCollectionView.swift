@@ -47,31 +47,26 @@ struct AssetCollectionView<Source: AssetSource>: View {
     @EnvironmentObject var apiService: APIService
     @State private var assets: [Asset] = []
     @State private var isLoading = true
-    @State private var currentIndex: Int = 0
     @FocusState private var focusedIndex: Int?
 
     var body: some View {
         gridContent
+            .navigationDestination(for: Asset.self) { asset in
+                AssetDetailView(assets: assets, initialAsset: asset)
+                    .environmentObject(apiService)
+            }
             #if os(macOS)
             .navigationTitle(source.title)
             #else
             .toolbar(.hidden, for: .navigationBar)
             #endif
-            .navigationDestination(for: Int.self) { index in
-                AssetDetailView(
-                    assets: assets,
-                    currentIndex: $currentIndex
-                )
-                .environmentObject(apiService)
-                .onAppear { currentIndex = index }
-            }
             .task {
                 await load()
             }
     }
 
     private var gridContent: some View {
-        Group {
+        ZStack {
             if isLoading && assets.isEmpty {
                 ProgressView("Loading photos...")
                     .frame(maxWidth: .infinity, maxHeight: .infinity)
