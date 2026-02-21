@@ -1,0 +1,32 @@
+name: Build
+
+on:
+  push:
+    branches: [main]
+  pull_request:
+    branches: [main]
+
+jobs:
+  build-macos:
+    name: Build macOS
+    runs-on: macos-15
+    steps:
+      - uses: actions/checkout@v4
+      - name: Build
+        run: |
+          xcodebuild -project ImmichLens.xcodeproj -scheme ImmichLens \
+            -destination 'platform=macOS' \
+            -skipPackagePluginValidation \
+            build
+
+  build-tvos:
+    name: Build tvOS
+    runs-on: macos-15
+    steps:
+      - uses: actions/checkout@v4
+      - name: Build
+        run: |
+          xcodebuild -project ImmichLens.xcodeproj -scheme ImmichLens \
+            -destination 'platform=tvOS Simulator,name=Apple TV' \
+            -skipPackagePluginValidation \
+            build
