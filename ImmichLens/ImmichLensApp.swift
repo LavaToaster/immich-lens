@@ -13,7 +13,7 @@ import os
 @main
 struct ImmichLensApp: App {
     @State var selection: RootTabs = .photos
-    @StateObject private var apiService = APIService()
+    @State private var apiService = APIService()
 
     var body: some Scene {
         WindowGroup {
@@ -21,15 +21,19 @@ struct ImmichLensApp: App {
                 if apiService.isReady {
                     if !apiService.isAuthenticated {
                         ServerConnectionView()
-                            .environmentObject(apiService)
                     } else {
                         mainTabView
                     }
                 }
             }
-            .environmentObject(apiService)
+            .environment(apiService)
             .task {
                 await apiService.initialise()
+            }
+            .onChange(of: apiService.isAuthenticated) { _, authenticated in
+                if !authenticated {
+                    selection = .photos
+                }
             }
         }
     }
@@ -68,15 +72,10 @@ struct ImmichLensApp: App {
                 }
             }
 
-            Tab(value: .logout) {
-                Text("Please wait while we log you out...")
-                    .onAppear {
-                        self.apiService.logout()
-                        // Reset the selection to the media tab after logging out
-                        self.selection = .photos
-                    }
+            Tab(value: .settings) {
+                SettingsView()
             } label: {
-                Text("Logout")
+                Text("Settings")
             }
         }
         #if os(tvOS)
@@ -87,14 +86,14 @@ struct ImmichLensApp: App {
     }
 }
 
-let logger = Logger()
+let logger = Logger(subsystem: "dev.lav.immichlens", category: "general")
 
 enum RootTabs: Equatable, Hashable, Identifiable {
     case photos
     case explore
     case people
     case library(LibraryTabs)
-    case logout
+    case settings
 
     var id: Self { self }
 }

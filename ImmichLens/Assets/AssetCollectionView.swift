@@ -46,7 +46,7 @@ func fetchTimeBucketAssets(
 struct AssetCollectionView<Source: AssetSource>: View {
     let source: Source
 
-    @EnvironmentObject var apiService: APIService
+    @Environment(APIService.self) private var apiService
     @State private var assets: [Asset] = []
     @State private var isLoading = true
     @FocusState private var focusedIndex: Int?
@@ -55,7 +55,7 @@ struct AssetCollectionView<Source: AssetSource>: View {
         gridContent
             .navigationDestination(for: Asset.self) { asset in
                 AssetDetailView(assets: assets, initialAsset: asset)
-                    .environmentObject(apiService)
+                    .environment(apiService)
             }
             #if os(macOS)
             .navigationTitle(source.title)
@@ -72,7 +72,6 @@ struct AssetCollectionView<Source: AssetSource>: View {
             if isLoading && assets.isEmpty {
                 ProgressView("Loading photos...")
                     .frame(maxWidth: .infinity, maxHeight: .infinity)
-                    .focusable()
             } else if !isLoading && assets.isEmpty {
                 ContentUnavailableView(
                     "No Photos",
@@ -100,9 +99,6 @@ struct AssetCollectionView<Source: AssetSource>: View {
 
         do {
             self.assets = try await source.loadAssets(client: client, serverUrl: serverUrl)
-            if !assets.isEmpty {
-                focusedIndex = 0
-            }
         } catch {
             logger.error("Failed to load assets: \(error.localizedDescription)")
         }

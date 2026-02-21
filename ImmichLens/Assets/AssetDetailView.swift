@@ -30,7 +30,7 @@ struct AssetDetailView: View {
         return vc
     }()
     #endif
-    @EnvironmentObject var apiService: APIService
+    @Environment(APIService.self) private var apiService
 
     var body: some View {
         if assets.isEmpty {
@@ -50,7 +50,7 @@ struct AssetDetailView: View {
                     isPlayingVideo: $isPlayingVideo
                 )
                 .id(currentIndex)
-                .environmentObject(apiService)
+                .environment(apiService)
                 .frame(width: geometry.size.width, height: geometry.size.height)
                 #else
                 ForEach(nearbyIndices, id: \.self) { index in
@@ -59,7 +59,7 @@ struct AssetDetailView: View {
                         isActive: index == currentIndex,
                         isPlayingVideo: $isPlayingVideo
                     )
-                    .environmentObject(apiService)
+                    .environment(apiService)
                     .frame(width: geometry.size.width, height: geometry.size.height)
                     .clipped()
                     .offset(x: CGFloat(index - currentIndex) * geometry.size.width)

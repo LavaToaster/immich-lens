@@ -70,10 +70,10 @@ final class KeychainManager {
     let status = SecItemDelete(query as CFDictionary)
 
     guard status == errSecSuccess else {
-      print("Error deleting item: \(status)")
+      logger.error("Error deleting keychain item: \(status)")
       return
     }
-    
-    print("Item \(key) deleted successfully.")
+
+    logger.info("Keychain item deleted successfully")
   }
 }

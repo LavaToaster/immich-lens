@@ -17,7 +17,7 @@ struct AssetPageView: View {
     @State private var videoError: Error?
     @State private var endOfVideoObserver: Any?
     #endif
-    @EnvironmentObject var apiService: APIService
+    @Environment(APIService.self) private var apiService
 
     var body: some View {
         ZStack {
@@ -194,10 +194,10 @@ struct AssetPageView: View {
         VStack(spacing: 16) {
             Image(systemName: "exclamationmark.triangle")
                 .font(.system(size: 48))
-                .foregroundColor(.red)
+                .foregroundStyle(.red)
             Text(message)
                 .font(.title3)
         }
-        .foregroundColor(.white)
+        .foregroundStyle(.white)
     }
 }

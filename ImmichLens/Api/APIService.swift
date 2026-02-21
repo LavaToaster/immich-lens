@@ -11,10 +11,11 @@ import OpenAPIURLSession
 import SwiftUI
 
 @MainActor
-class APIService: ObservableObject, @unchecked Sendable {
-  @Published var isAuthenticated = false
-  @Published var isLoading = false
-  @Published var isReady = false
+@Observable
+class APIService {
+  var isAuthenticated = false
+  var isLoading = false
+  var isReady = false
 
   private(set) var client: Client?
   private(set) var serverUrl: String?
@@ -38,7 +39,7 @@ class APIService: ObservableObject, @unchecked Sendable {
         }
       } catch {
         // Handle token validation error
-        print("Token validation failed: \(error)")
+        logger.error("Token validation failed: \(error.localizedDescription)")
         self.logout()
         return
       }
@@ -108,14 +109,17 @@ class APIService: ObservableObject, @unchecked Sendable {
 
 /// @see: https://developer.apple.com/forums/thread/744220
 struct ComplainLessTranscoder: DateTranscoder {
-  /// Creates and returns an ISO 8601 formatted string representation of the specified date.
-  public func encode(_ date: Date) throws -> String { ISO8601DateFormatter().string(from: date) }
+  private static let encoder = ISO8601DateFormatter()
+  private static let decoder: ISO8601DateFormatter = {
+    let f = ISO8601DateFormatter()
+    f.formatOptions = [.withFractionalSeconds]
+    return f
+  }()
 
-  /// Creates and returns a date object from the specified ISO 8601 formatted string representation.
+  public func encode(_ date: Date) throws -> String { Self.encoder.string(from: date) }
+
   public func decode(_ dateString: String) throws -> Date {
-    let formatter = ISO8601DateFormatter()
-    formatter.formatOptions = [.withFractionalSeconds]
-    guard let date = formatter.date(from: dateString) else {
+    guard let date = Self.decoder.date(from: dateString) else {
       throw DecodingError.dataCorrupted(
         .init(codingPath: [], debugDescription: "Expected date string to be ISO8601-formatted.")
       )

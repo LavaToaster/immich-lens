@@ -12,7 +12,7 @@ struct TimelineSource: AssetSource {
 }
 
 struct PhotosView: View {
-    @EnvironmentObject var apiService: APIService
+    @Environment(APIService.self) private var apiService
     @State private var navigationPath = NavigationPath()
 
     var body: some View {

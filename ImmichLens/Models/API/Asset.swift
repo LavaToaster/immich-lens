@@ -25,6 +25,9 @@ struct Asset: Codable, Hashable, Identifiable {
     /// The file creation timestamp in UTC
     let fileCreatedAt: Date?
 
+    /// Whether the asset has been favourited
+    let isFavorite: Bool
+
     /// The server URL used for generating asset URLs
     private let serverUrl: String
 
@@ -53,6 +56,7 @@ struct Asset: Codable, Hashable, Identifiable {
         self.city = dto.city[idx]
         self.country = dto.country[idx]
         self.fileCreatedAt = Self.dateParser.date(from: dto.fileCreatedAt[idx])
+        self.isFavorite = dto.isFavorite[idx]
         self.serverUrl = serverUrl
     }
 
@@ -64,6 +68,7 @@ struct Asset: Codable, Hashable, Identifiable {
         self.city = dto.exifInfo?.city
         self.country = dto.exifInfo?.country
         self.fileCreatedAt = dto.fileCreatedAt
+        self.isFavorite = dto.isFavorite
         self.serverUrl = serverUrl
     }
 

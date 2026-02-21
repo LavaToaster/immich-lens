@@ -3,7 +3,7 @@ import NukeUI
 import SwiftUI
 
 struct PeopleView: View {
-    @EnvironmentObject var apiService: APIService
+    @Environment(APIService.self) private var apiService
     @State private var people: [Person] = []
     @State private var isLoading = true
 
@@ -16,13 +16,14 @@ struct PeopleView: View {
     #endif
 
     @State private var navigationPath = NavigationPath()
+    @FocusState private var focusedPerson: String?
 
     var body: some View {
         NavigationStack(path: $navigationPath) {
             gridContent
                 .navigationDestination(for: Person.self) { person in
                     PersonAssetsView(person: person)
-                        .environmentObject(apiService)
+                        .environment(apiService)
                 }
         }
         .task {
@@ -35,7 +36,6 @@ struct PeopleView: View {
             if isLoading && people.isEmpty {
                 ProgressView("Loading people...")
                     .frame(maxWidth: .infinity, maxHeight: .infinity)
-                    .focusable()
             } else if !isLoading && people.isEmpty {
                 ContentUnavailableView(
                     "No People",
@@ -50,6 +50,7 @@ struct PeopleView: View {
                                 PersonCell(person: person)
                             }
                             .buttonBorderShape(.circle)
+                            .focused($focusedPerson, equals: person.id)
                             #if os(tvOS)
                             .buttonStyle(.borderless)
                             #else
@@ -105,7 +106,7 @@ struct PersonCell: View {
     }
 
     var body: some View {
-        VStack(spacing: 8) {
+        VStack(spacing: 12) {
             if let request = thumbnailRequest {
                 LazyImage(request: request) { state in
                     if let image = state.image {
@@ -138,7 +139,7 @@ struct PersonCell: View {
                 .resizable()
                 .scaledToFit()
                 .padding(30)
-                .foregroundColor(.gray)
+                .foregroundStyle(.gray)
         }
     }
 }

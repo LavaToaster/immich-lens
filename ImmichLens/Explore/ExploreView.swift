@@ -3,7 +3,7 @@ import NukeUI
 import SwiftUI
 
 struct ExploreView: View {
-    @EnvironmentObject var apiService: APIService
+    @Environment(APIService.self) private var apiService
     @State private var people: [Person] = []
     @State private var places: [Place] = []
     @State private var isLoading = true
@@ -13,11 +13,11 @@ struct ExploreView: View {
             content
                 .navigationDestination(for: Person.self) { person in
                     PersonAssetsView(person: person)
-                        .environmentObject(apiService)
+                        .environment(apiService)
                 }
                 .navigationDestination(for: Place.self) { place in
                     PlaceAssetsView(place: place)
-                        .environmentObject(apiService)
+                        .environment(apiService)
                 }
                 #if os(macOS)
                 .navigationTitle("Explore")
@@ -33,7 +33,6 @@ struct ExploreView: View {
         if isLoading && people.isEmpty && places.isEmpty {
             ProgressView("Loading...")
                 .frame(maxWidth: .infinity, maxHeight: .infinity)
-                .focusable()
         } else if !isLoading && people.isEmpty && places.isEmpty {
             ContentUnavailableView(
                 "Nothing to Explore",
@@ -65,8 +64,8 @@ struct ExploreView: View {
                 Spacer()
             }
 
-            ScrollView(.horizontal, showsIndicators: false) {
-                LazyHStack(spacing: 20) {
+            ScrollView(.horizontal) {
+                LazyHStack(spacing: 28) {
                     ForEach(people) { person in
                         NavigationLink(value: person) {
                             PersonCell(person: person)
@@ -81,6 +80,8 @@ struct ExploreView: View {
                 }
                 .padding(20)
             }
+            .scrollIndicators(.hidden)
+            .scrollClipDisabled()
         }
     }
 
@@ -94,7 +95,7 @@ struct ExploreView: View {
                 Spacer()
             }
 
-            ScrollView(.horizontal, showsIndicators: false) {
+            ScrollView(.horizontal) {
                 LazyHStack(spacing: 16) {
                     ForEach(places) { place in
                         NavigationLink(value: place) {
@@ -109,6 +110,7 @@ struct ExploreView: View {
                 }
                 .padding(20)
             }
+            .scrollIndicators(.hidden)
         }
     }
 
@@ -174,7 +176,7 @@ private struct PlaceCell: View {
     }
 
     var body: some View {
-        VStack(spacing: 8) {
+        VStack(spacing: 12) {
             LazyImage(request: thumbnailRequest) { state in
                 if let image = state.image {
                     image
@@ -183,7 +185,7 @@ private struct PlaceCell: View {
                         .frame(width: Self.size.width, height: Self.size.height)
                         .overlay {
                             Image(systemName: "mappin.circle.fill")
-                                .foregroundColor(.gray)
+                                .foregroundStyle(.gray)
                         }
                 }
             }

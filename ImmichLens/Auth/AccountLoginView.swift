@@ -10,10 +10,10 @@ import OpenAPIURLSession
 import SwiftUI
 
 struct AccountLoginView: View {
-  @EnvironmentObject var apiService: APIService
-  @State var email: String = ""
-  @State var password: String = ""
-  @State var errorMessage: String? = nil
+  @Environment(APIService.self) private var apiService
+  @State private var email: String = ""
+  @State private var password: String = ""
+  @State private var errorMessage: String? = nil
 
   var serverUrl: String
 
@@ -25,76 +25,101 @@ struct AccountLoginView: View {
     case loginButton
   }
 
+  #if os(tvOS)
+  private let logoSize: CGFloat = 120
+  #else
+  private let logoSize: CGFloat = 80
+  #endif
+
+  /// Strip the /api suffix for display
+  private var displayUrl: String {
+    if serverUrl.hasSuffix("/api") {
+      return String(serverUrl.dropLast(4))
+    }
+    return serverUrl
+  }
+
   var body: some View {
-    VStack(spacing: 30) {
-      Text("Sign in to your server")
-        .font(.largeTitle)
-        .fontWeight(.bold)
-
-      Text(serverUrl)
-        .font(.subheadline)
-        .foregroundColor(.secondary)
-
+    VStack(spacing: 24) {
       Spacer()
 
-      TextField("Email", text: $email)
-        .focused($focusedField, equals: .email)
-        .submitLabel(.next)
-        .onSubmit {
-          focusedField = .password
-        }
-        .onAppear {
-          focusedField = .email
-        }
-        .textContentType(.emailAddress)
-        .disabled(apiService.isLoading)
+      Image("AppLogo")
+        .resizable()
+        .scaledToFit()
+        .frame(width: logoSize, height: logoSize)
+        .clipShape(.rect(cornerRadius: logoSize * 0.2))
 
-      SecureField("Password", text: $password)
-        .focused($focusedField, equals: .password)
-        .submitLabel(.go)
-        .onSubmit {
-          focusedField = .loginButton
-        }
-        .disabled(apiService.isLoading)
+      VStack(spacing: 8) {
+        Text("Sign In")
+          .font(.largeTitle.bold())
 
-      Button(action: {
-        Task {
-          await handleLogin()
-        }
-      }) {
-        if apiService.isLoading {
-          ProgressView()
-            .progressViewStyle(.circular)
-            .frame(width: 200)
-        } else {
-          Text("Log In")
-            .fontWeight(.semibold)
-            .frame(width: 200)
-        }
+        Text(displayUrl)
+          .font(.subheadline)
+          .foregroundStyle(.secondary)
       }
-      .buttonStyle(.borderedProminent)
-      .focused($focusedField, equals: .loginButton)
-      .disabled(email.isEmpty || password.isEmpty || apiService.isLoading)
+
+      VStack(spacing: 16) {
+        TextField("Email", text: $email)
+          .focused($focusedField, equals: .email)
+          .submitLabel(.next)
+          .onSubmit {
+            focusedField = .password
+          }
+          .onAppear {
+            focusedField = .email
+          }
+          .textContentType(.emailAddress)
+          .disabled(apiService.isLoading)
+
+        SecureField("Password", text: $password)
+          .focused($focusedField, equals: .password)
+          .submitLabel(.go)
+          .onSubmit {
+            focusedField = .loginButton
+          }
+          .disabled(apiService.isLoading)
+
+        Button(action: {
+          Task {
+            await handleLogin()
+          }
+        }) {
+          if apiService.isLoading {
+            ProgressView()
+              .progressViewStyle(.circular)
+              .frame(width: 200)
+          } else {
+            Text("Log In")
+              .fontWeight(.semibold)
+              .frame(width: 200)
+          }
+        }
+        .buttonStyle(.borderedProminent)
+        .focused($focusedField, equals: .loginButton)
+        .disabled(email.isEmpty || password.isEmpty || apiService.isLoading)
+      }
+      #if os(macOS)
+      .frame(maxWidth: 400)
+      #endif
 
       if let errorMessage = errorMessage {
         Text(errorMessage)
-          .foregroundColor(.red)
+          .foregroundStyle(.red)
+          .font(.callout)
       }
 
       Spacer()
     }
     .padding()
-    .navigationBarBackButtonHidden(false)
   }
 
   private func handleLogin() async {
     errorMessage = nil
 
     do {
-      // Use the APIService for login instead of creating a client directly
       _ = try await apiService.login(serverUrl: serverUrl, email: email, password: password)
     } catch {
-      print("Login failed: \(error)")
+      logger.error("Login failed: \(error.localizedDescription)")
       errorMessage = "Login failed: \(error.localizedDescription)"
     }
   }
@@ -104,5 +129,5 @@ struct AccountLoginView: View {
   AccountLoginView(
     serverUrl: "https://photos.example.com"
   )
-  .environmentObject(APIService())
+  .environment(APIService())
 }

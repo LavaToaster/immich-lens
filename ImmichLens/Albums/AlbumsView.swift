@@ -3,7 +3,7 @@ import NukeUI
 import SwiftUI
 
 struct AlbumsView: View {
-    @EnvironmentObject var apiService: APIService
+    @Environment(APIService.self) private var apiService
     @State private var albums: [Album] = []
     @State private var isLoading = true
 
@@ -16,13 +16,14 @@ struct AlbumsView: View {
     #endif
 
     @State private var navigationPath = NavigationPath()
+    @FocusState private var focusedAlbum: String?
 
     var body: some View {
         NavigationStack(path: $navigationPath) {
             gridContent
                 .navigationDestination(for: Album.self) { album in
                     AlbumAssetsView(album: album)
-                        .environmentObject(apiService)
+                        .environment(apiService)
                 }
         }
         .task {
@@ -35,7 +36,6 @@ struct AlbumsView: View {
             if isLoading && albums.isEmpty {
                 ProgressView("Loading albums...")
                     .frame(maxWidth: .infinity, maxHeight: .infinity)
-                    .focusable()
             } else if !isLoading && albums.isEmpty {
                 ContentUnavailableView(
                     "No Albums",
@@ -49,6 +49,7 @@ struct AlbumsView: View {
                             NavigationLink(value: album) {
                                 AlbumCell(album: album)
                             }
+                            .focused($focusedAlbum, equals: album.id)
                             #if os(tvOS)
                             .buttonStyle(.borderless)
                             #else
@@ -77,6 +78,7 @@ struct AlbumsView: View {
 
             self.albums = dtos
                 .map { Album(from: $0, serverUrl: serverUrl) }
+                .filter { $0.assetCount > 0 }
                 .sorted { $0.name.localizedCaseInsensitiveCompare($1.name) == .orderedAscending }
         } catch {
             logger.error("Failed to fetch albums: \(error.localizedDescription)")
@@ -105,13 +107,9 @@ private struct AlbumCell: View {
                         image
                             .resizable()
                             .scaledToFill()
-                    } else {
-                        placeholder
                     }
                 }
                 .aspectRatio(1, contentMode: .fill)
-            } else {
-                placeholder
             }
 
             Text(album.name)
@@ -122,13 +120,5 @@ private struct AlbumCell: View {
                 .font(.caption2)
                 .foregroundStyle(.secondary)
         }
-    }
-
-    private var placeholder: some View {
-        Image(systemName: "photo.on.rectangle")
-            .resizable()
-            .scaledToFit()
-            .foregroundStyle(.secondary)
-            .frame(width: 300, height: 300)
     }
 }

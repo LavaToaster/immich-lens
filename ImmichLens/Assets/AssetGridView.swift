@@ -74,7 +74,7 @@ struct AssetGridView: View {
                 columns: Array(repeating: GridItem(.flexible(), spacing: spacing), count: macColumns),
                 spacing: spacing
             ) {
-                ForEach(Array(assets.enumerated()), id: \.offset) { index, asset in
+                ForEach(Array(assets.enumerated()), id: \.element.id) { index, asset in
                     NavigationLink(value: asset) {
                         AssetGridCell(asset: asset)
                             .aspectRatio(1, contentMode: .fill)
@@ -230,6 +230,15 @@ struct AssetGridCell: View {
                 placeholderView(systemName: "photo")
             }
 
+            if asset.isFavorite {
+                Image(systemName: "heart.fill")
+                    .font(.caption2)
+                    .foregroundStyle(.white)
+                    .shadow(radius: 2)
+                    .frame(maxWidth: .infinity, maxHeight: .infinity, alignment: .bottomLeading)
+                    .padding(8)
+            }
+
             if asset.type == .video {
                 VideoIndicatorOverlay(duration: asset.duration)
                     .padding(8)
@@ -245,7 +254,7 @@ struct AssetGridCell: View {
                 .scaledToFit()
                 .frame(maxWidth: .infinity, maxHeight: .infinity)
                 .padding()
-                .foregroundColor(.gray)
+                .foregroundStyle(.gray)
         }
     }
 }
