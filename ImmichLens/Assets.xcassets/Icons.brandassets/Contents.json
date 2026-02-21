@@ -1,10 +1,8 @@
 {
   "assets" : [
     {
-      "filename" : "macOS AppIcon.appiconset"
-    },
-    {
-      "filename" : "macOS Generic Icon.iconset"
+      "filename" : "macOS Generic Icon.iconset",
+      "unassigned" : true
     },
     {
       "filename" : "tvOS App Icon - App Store.imagestack",
@@ -25,7 +23,7 @@
       "size" : "2320x720"
     },
     {
-      "filename" : "tvOSTop Shelf Image.imageset",
+      "filename" : "tvOS Top Shelf Image.imageset",
       "idiom" : "tv",
       "role" : "top-shelf-image",
       "size" : "1920x720"
