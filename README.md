@@ -1,35 +1,50 @@
-# ImmichLens
+<p align="center">
+  <img src="ImmichLens/Assets.xcassets/Icons.brandassets/tvOS Top Shelf Image Wide.imageset/tvOS Top Shelf Wide@2x.png" alt="ImmichLens banner" width="100%">
+</p>
 
-This app aims to be a simple way to view your photos and videos stored in Immich.
+<h1 align="center">ImmichLens</h1>
 
-## VS Code
+<p align="center">
+  A native SwiftUI app for viewing your photos and videos on an <a href="https://immich.app/">Immich</a> server.<br>
+  Primarily built for <strong>Apple TV</strong>, with <strong>macOS</strong> support.
+</p>
 
-If you want to run this project in VS Code with autocomplete and intellisense, you can use the following steps:
+<p align="center">
+  <img src="https://img.shields.io/badge/platform-macOS%2015.0%2B-blue" alt="macOS 15.0+">
+  <img src="https://img.shields.io/badge/platform-tvOS%2018.4%2B-black" alt="tvOS 18.4+">
+  <img src="https://img.shields.io/badge/Swift-SwiftUI-orange" alt="SwiftUI">
+</p>
 
-1. Install the xcode build server:
+---
+
+## Features
+
+- **Photo & Video Timeline** — Browse your entire library in a responsive grid with time-bucket pagination
+- **Explore** — Discover your library through recognized people and places
+- **Albums** — View and browse your Immich albums
+- **Favourites** — Quick access to your starred photos and videos
+- **Full-Screen Viewer** — Swipe through photos and play videos natively
+- **Secure Authentication** — Connect to your Immich server with credentials stored in Keychain
+
+## Development
+
+### API Client
+
+The API client is auto-generated from the Immich OpenAPI spec using [`swift-openapi-generator`](https://github.com/apple/swift-openapi-generator) as part of the Xcode build process.
+
+### VS Code Setup
+
+If you prefer VS Code over Xcode for development:
+
+1. Install the Xcode build server:
     ```
-    $ brew install xcode-build-server
+    brew install xcode-build-server
     ```
+2. Install VS Code extensions: [Swift][swift] and [SweetPad][sweetpad]
+3. Run `SweetPad: Generate Build Server Config` from the command palette
+4. Run `SweetPad: Start Build Server` from the command palette
 
-2. Install the following extensions in VS Code:
-    - [Swift][swift]
-    - [SweetPad][sweetpad]
-3. Open the project in VS Code and run the following command:
-    ```
-    > SweetPad: Generate Build Server Config
-    ```
-4. Open the command palette (Cmd+Shift+P) and run the following command:
-    ```
-    > SweetPad: Start Build Server
-    ```
-    Docs: [AutoComplete][sweetpad-autocomplete]
-
-More documentation on SweetPad can be found [here][sweetpad-docs]
-
-> Personal note: I am finding that XCode intellisense is quite slow, and isn't always able to take me to the definition 
-of a symbol. I.E The generated api client I can't for the life of me get it to navigate to the generated code. I'm not 
-sure what I'm doing wrong, but I'm finding that this setup with VS Code is much better for me, and I can do what I 
-expect.
+More on SweetPad: [docs][sweetpad-docs] | [autocomplete setup][sweetpad-autocomplete]
 
 [swift]: https://marketplace.visualstudio.com/items?itemName=swiftlang.swift-vscode
 [sweetpad]: https://marketplace.visualstudio.com/items?itemName=SweetPad.sweetpad
