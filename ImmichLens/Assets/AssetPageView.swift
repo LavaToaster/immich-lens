@@ -4,6 +4,7 @@
 //
 
 import AVKit
+import Nuke
 import NukeUI
 import SwiftUI
 
@@ -71,6 +72,10 @@ struct AssetPageView: View {
                             .aspectRatio(contentMode: .fit)
                     } else if state.error != nil {
                         errorView("Failed to load photo")
+                    } else if let placeholder = cachedThumbnail {
+                        placeholder
+                            .resizable()
+                            .aspectRatio(contentMode: .fit)
                     } else {
                         ProgressView()
                             .scaleEffect(1.5)
@@ -109,6 +114,10 @@ struct AssetPageView: View {
                 LazyImage(url: imageUrl) { state in
                     if let image = state.image {
                         image
+                            .resizable()
+                            .aspectRatio(contentMode: .fit)
+                    } else if let placeholder = cachedThumbnail {
+                        placeholder
                             .resizable()
                             .aspectRatio(contentMode: .fit)
                     } else {
@@ -189,6 +198,19 @@ struct AssetPageView: View {
         }
     }
     #endif
+
+    private var cachedThumbnail: Image? {
+        guard let url = asset.imageUrl(.thumbnail) else { return nil }
+        let request = ImageRequest(url: url)
+        guard let container = ImagePipeline.shared.cache.cachedImage(for: request) else {
+            return nil
+        }
+        #if os(macOS)
+        return Image(nsImage: container.image)
+        #else
+        return Image(uiImage: container.image)
+        #endif
+    }
 
     private func errorView(_ message: String) -> some View {
         VStack(spacing: 16) {

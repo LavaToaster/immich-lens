@@ -15,6 +15,7 @@ import os
 struct ImmichLensApp: App {
     @State var selection: RootTabs = .photos
     @State private var apiService = APIService()
+    @State private var prefetchService: ThumbnailPrefetchService?
 
     var body: some Scene {
         WindowGroup {
@@ -35,15 +36,24 @@ struct ImmichLensApp: App {
                 if let token {
                     let config = URLSessionConfiguration.default
                     config.httpAdditionalHeaders = ["x-api-key": token]
+                    let dataCache = Self.createDataCache()
                     ImagePipeline.shared = ImagePipeline {
                         $0.dataLoader = DataLoader(configuration: config)
+                        $0.dataCache = dataCache
                     }
                 } else {
+                    (ImagePipeline.shared.configuration.dataCache as? DataCache)?.removeAll()
                     ImagePipeline.shared = ImagePipeline()
                 }
             }
             .onChange(of: apiService.isAuthenticated) { _, authenticated in
-                if !authenticated {
+                if authenticated {
+                    let service = ThumbnailPrefetchService(apiService: apiService)
+                    prefetchService = service
+                    service.startPrefetching()
+                } else {
+                    prefetchService?.stopPrefetching()
+                    prefetchService = nil
                     selection = .photos
                 }
             }
@@ -96,6 +106,29 @@ struct ImmichLensApp: App {
         .tabViewStyle(.sidebarAdaptable)
         .environment(\.activeTab, selection)
         #endif
+    }
+}
+
+extension ImmichLensApp {
+    static func createDataCache() -> DataCache? {
+        let candidates: [URL] = [
+            FileManager.default.urls(for: .cachesDirectory, in: .userDomainMask).first,
+            FileManager.default.urls(for: .applicationSupportDirectory, in: .userDomainMask).first,
+            FileManager.default.temporaryDirectory,
+        ].compactMap { $0 }
+
+        for base in candidates {
+            let path = base.appendingPathComponent("dev.lav.immichlens", isDirectory: true)
+            do {
+                let cache = try DataCache(path: path)
+                logger.info("DataCache created at \(path.path)")
+                return cache
+            } catch {
+                logger.warning("DataCache failed at \(path.path): \(error.localizedDescription)")
+            }
+        }
+        logger.error("DataCache: all locations failed")
+        return nil
     }
 }
 

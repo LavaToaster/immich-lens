@@ -190,6 +190,15 @@ private struct AssetGridRow: View {
                 .focused(focusedIndex, equals: index)
                 #if os(tvOS)
                 .buttonStyle(.borderless)
+                .overlay(alignment: .bottomLeading) {
+                    if assets[index].isFavorite {
+                        Image(systemName: "heart.fill")
+                            .font(.caption2)
+                            .foregroundStyle(.white)
+                            .shadow(radius: 2)
+                            .padding(8)
+                    }
+                }
                 #else
                 .buttonStyle(.plain)
                 #endif
@@ -208,7 +217,7 @@ struct AssetGridCell: View {
     ]
 
     private var thumbnailRequest: ImageRequest? {
-        guard let url = asset.imageUrl(.preview) else { return nil }
+        guard let url = asset.imageUrl(.thumbnail) else { return nil }
         return ImageRequest(url: url, processors: Self.thumbnailProcessors)
     }
 
@@ -223,13 +232,14 @@ struct AssetGridCell: View {
                     } else if state.error != nil {
                         placeholderView(systemName: "exclamationmark.triangle")
                     } else {
-                        placeholderView(systemName: "photo")
+                        Color.gray.opacity(0.2)
                     }
                 }
             } else {
                 placeholderView(systemName: "photo")
             }
 
+            #if !os(tvOS)
             if asset.isFavorite {
                 Image(systemName: "heart.fill")
                     .font(.caption2)
@@ -238,6 +248,7 @@ struct AssetGridCell: View {
                     .frame(maxWidth: .infinity, maxHeight: .infinity, alignment: .bottomLeading)
                     .padding(8)
             }
+            #endif
 
             if asset.type == .video {
                 VideoIndicatorOverlay(duration: asset.duration)
