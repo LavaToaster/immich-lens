@@ -9,7 +9,7 @@ on:
 jobs:
   build-macos:
     name: Build & Test macOS
-    runs-on: macos-15
+    runs-on: macos-26
     steps:
       - uses: actions/checkout@v4
       - name: Build & Test
@@ -22,7 +22,7 @@ jobs:
 
   build-tvos:
     name: Build & Test tvOS
-    runs-on: macos-15
+    runs-on: macos-26
     steps:
       - uses: actions/checkout@v4
       - name: Build & Test

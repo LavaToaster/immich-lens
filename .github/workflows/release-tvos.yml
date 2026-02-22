@@ -14,7 +14,7 @@ on:
 jobs:
   release-tvos:
     name: Archive & Upload to TestFlight
-    runs-on: macos-15
+    runs-on: macos-26
     env:
       ARCHIVE_PATH: build/ImmichLens-tvOS.xcarchive
       EXPORT_PATH: build/export
@@ -38,8 +38,10 @@ jobs:
           if [[ -n "$INPUT_VERSION" ]]; then
             VERSION="$INPUT_VERSION"
             VERSION="${VERSION#v}"
+            VERSION="${VERSION%%-*}"
           elif [[ "$GITHUB_REF" == refs/tags/v* ]]; then
             VERSION="${GITHUB_REF#refs/tags/v}"
+            VERSION="${VERSION%%-*}"
           else
             VERSION=$(sed -n 's/.*MARKETING_VERSION = \(.*\);/\1/p' ImmichLens.xcodeproj/project.pbxproj | head -1 | tr -d ' ')
           fi

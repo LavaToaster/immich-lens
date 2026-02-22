@@ -10,8 +10,8 @@
 </p>
 
 <p align="center">
-  <img src="https://img.shields.io/badge/platform-macOS%2015.0%2B-blue" alt="macOS 15.0+">
-  <img src="https://img.shields.io/badge/platform-tvOS%2018.4%2B-black" alt="tvOS 18.4+">
+  <img src="https://img.shields.io/badge/platform-macOS%2026.0%2B-blue" alt="macOS 26.0+">
+  <img src="https://img.shields.io/badge/platform-tvOS%2026.0%2B-black" alt="tvOS 26.0+">
   <img src="https://img.shields.io/badge/Swift-SwiftUI-orange" alt="SwiftUI">
 </p>
 
