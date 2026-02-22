@@ -22,18 +22,22 @@ struct AssetGridView: View {
     static let defaultColumns: Int = 0  // 0 = auto-calculate on macOS
     #endif
 
+    var visibleRange: Binding<Range<Int>>?
+
     init(
         assets: [Asset],
         columns: Int = AssetGridView.defaultColumns,
         spacing: CGFloat = AssetGridView.defaultSpacing,
         title: String? = nil,
-        focusedIndex: FocusState<Int?>.Binding
+        focusedIndex: FocusState<Int?>.Binding,
+        visibleRange: Binding<Range<Int>>? = nil
     ) {
         self.assets = assets
         self.columns = columns
         self.spacing = spacing
         self.title = title
         self.focusedIndex = focusedIndex
+        self.visibleRange = visibleRange
     }
 
     private var totalRows: Int {
@@ -95,6 +99,20 @@ struct AssetGridView: View {
                 let count = max(3, Int(floor((width + spacing) / (Self.targetCellSize + spacing))))
                 macColumns = count
             }
+        }
+        .onScrollGeometryChange(for: Range<Int>.self) { geo in
+            let cols = self.macColumns
+            let cellSize = (geo.containerSize.width - CGFloat(cols - 1) * self.spacing) / CGFloat(cols)
+            let rowH = cellSize + self.spacing
+            guard rowH > 0, !self.assets.isEmpty else { return 0..<0 }
+            let offset = max(0, geo.contentOffset.y)
+            let firstRow = Int(floor(offset / rowH))
+            let lastRow = Int(ceil((offset + geo.containerSize.height) / rowH))
+            let firstIdx = firstRow * cols
+            let lastIdx = min((lastRow + 1) * cols, self.assets.count)
+            return firstIdx..<lastIdx
+        } action: { _, newRange in
+            visibleRange?.wrappedValue = newRange
         }
     }
     #else
@@ -163,6 +181,9 @@ struct AssetGridView: View {
             return first..<(last + 1)
         } action: { _, newRange in
             visibleRows = newRange
+            let firstIdx = newRange.lowerBound * columns
+            let lastIdx = min(newRange.upperBound * columns, assets.count)
+            visibleRange?.wrappedValue = firstIdx..<lastIdx
         }
     }
     #endif

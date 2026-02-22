@@ -1,5 +1,31 @@
 import SwiftUI
 
+private func formatDateRange(from start: Date, to end: Date) -> String {
+    let cal = Calendar.current
+    let startComps = cal.dateComponents([.day, .month, .year], from: start)
+    let endComps = cal.dateComponents([.day, .month, .year], from: end)
+
+    if startComps == endComps {
+        // Same day: "16 Feb 2026"
+        return start.formatted(.dateTime.day().month(.abbreviated).year())
+    } else if startComps.year == endComps.year && startComps.month == endComps.month {
+        // Same month: "16 – 22 Feb 2026"
+        let day1 = start.formatted(.dateTime.day())
+        let day2end = end.formatted(.dateTime.day().month(.abbreviated).year())
+        return "\(day1) – \(day2end)"
+    } else if startComps.year == endComps.year {
+        // Same year: "16 Jan – 22 Feb 2026"
+        let startPart = start.formatted(.dateTime.day().month(.abbreviated))
+        let endPart = end.formatted(.dateTime.day().month(.abbreviated).year())
+        return "\(startPart) – \(endPart)"
+    } else {
+        // Different years: "16 Jan 2025 – 22 Feb 2026"
+        let startPart = start.formatted(.dateTime.day().month(.abbreviated).year())
+        let endPart = end.formatted(.dateTime.day().month(.abbreviated).year())
+        return "\(startPart) – \(endPart)"
+    }
+}
+
 /// Defines a source that can provide assets for display in a grid.
 protocol AssetSource {
     var title: String { get }
@@ -49,6 +75,8 @@ struct AssetCollectionView<Source: AssetSource>: View {
     @Environment(APIService.self) private var apiService
     @State private var assets: [Asset] = []
     @State private var isLoading = true
+    @State private var visibleRange: Range<Int> = 0..<0
+    @State private var gridTitle = ""
     @FocusState private var focusedIndex: Int?
 
     var body: some View {
@@ -58,7 +86,8 @@ struct AssetCollectionView<Source: AssetSource>: View {
                     .environment(apiService)
             }
             #if os(macOS)
-            .navigationTitle(source.title)
+            .navigationTitle(source.title.isEmpty ? "Photos" : source.title)
+            .navigationSubtitle(visibleSubtitle)
             #else
             .toolbar(.hidden, for: .navigationBar)
             #endif
@@ -81,8 +110,9 @@ struct AssetCollectionView<Source: AssetSource>: View {
             } else {
                 AssetGridView(
                     assets: assets,
-                    title: source.title,
-                    focusedIndex: $focusedIndex
+                    title: gridTitle,
+                    focusedIndex: $focusedIndex,
+                    visibleRange: $visibleRange
                 )
             }
         }
@@ -98,9 +128,29 @@ struct AssetCollectionView<Source: AssetSource>: View {
         defer { isLoading = false }
 
         do {
-            self.assets = try await source.loadAssets(client: client, serverUrl: serverUrl)
+            let loaded = try await source.loadAssets(client: client, serverUrl: serverUrl)
+            self.assets = loaded
+            self.gridTitle = Self.buildGridTitle(source: source.title, count: loaded.count)
+        } catch is CancellationError {
+            // Expected when the view is destroyed (e.g. tab switch)
         } catch {
             logger.error("Failed to load assets: \(error.localizedDescription)")
         }
+    }
+
+    private var visibleSubtitle: String {
+        guard !assets.isEmpty else { return "" }
+        let count = "\(assets.count) \(assets.count == 1 ? "item" : "items")"
+        let clamped = visibleRange.clamped(to: assets.startIndex..<assets.endIndex)
+        guard !clamped.isEmpty else { return count }
+        let dates = assets[clamped].compactMap(\.fileCreatedAt)
+        guard let earliest = dates.min(), let latest = dates.max() else { return count }
+        let range = formatDateRange(from: earliest, to: latest)
+        return "\(range) · \(count)"
+    }
+
+    private static func buildGridTitle(source title: String, count: Int) -> String {
+        guard !title.isEmpty, count > 0 else { return title }
+        return "\(title) · \(count) \(count == 1 ? "item" : "items")"
     }
 }
