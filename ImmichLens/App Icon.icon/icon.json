@@ -1,0 +1,121 @@
+{
+  "fill" : {
+    "linear-gradient" : [
+      "extended-srgb:0.00000,0.53333,1.00000,1.00000",
+      "extended-srgb:0.20392,0.78039,0.34902,1.00000"
+    ],
+    "orientation" : {
+      "start" : {
+        "x" : 0.5,
+        "y" : 0
+      },
+      "stop" : {
+        "x" : 0.5,
+        "y" : 0.7
+      }
+    }
+  },
+  "groups" : [
+    {
+      "blur-material" : 0.5,
+      "layers" : [
+        {
+          "glass" : true,
+          "hidden" : false,
+          "image-name" : "Group 1.png",
+          "name" : "Group 1"
+        },
+        {
+          "blend-mode-specializations" : [
+            {
+              "value" : "plus-lighter"
+            },
+            {
+              "appearance" : "tinted",
+              "value" : "normal"
+            }
+          ],
+          "glass" : true,
+          "hidden" : false,
+          "image-name" : "immich_logo 1.png",
+          "name" : "immich_logo 1",
+          "opacity" : 1
+        },
+        {
+          "glass" : true,
+          "image-name" : "Ellipse 2.png",
+          "name" : "Ellipse 2"
+        },
+        {
+          "glass" : true,
+          "image-name" : "Subtract.png",
+          "name" : "Subtract"
+        }
+      ],
+      "lighting" : "individual",
+      "position" : {
+        "scale" : 1.2499999999999998,
+        "translation-in-points" : [
+          0,
+          0
+        ]
+      },
+      "shadow" : {
+        "kind" : "neutral",
+        "opacity" : 0.5
+      },
+      "specular" : true,
+      "translucency" : {
+        "enabled" : true,
+        "value" : 0.5
+      }
+    },
+    {
+      "layers" : [
+        {
+          "blend-mode-specializations" : [
+            {
+              "appearance" : "tinted",
+              "value" : "overlay"
+            }
+          ],
+          "fill-specializations" : [
+            {
+              "appearance" : "tinted",
+              "value" : "none"
+            }
+          ],
+          "glass" : false,
+          "hidden" : false,
+          "image-name" : "BG.png",
+          "name" : "BG",
+          "opacity-specializations" : [
+            {
+              "appearance" : "tinted",
+              "value" : 0
+            }
+          ],
+          "position" : {
+            "scale" : 1.5,
+            "translation-in-points" : [
+              -0.625,
+              11
+            ]
+          }
+        }
+      ],
+      "name" : "Background",
+      "shadow" : {
+        "kind" : "neutral",
+        "opacity" : 0.5
+      },
+      "translucency" : {
+        "enabled" : true,
+        "value" : 0.5
+      }
+    }
+  ],
+  "supported-platforms" : {
+    "squares" : "shared"
+  }
+}

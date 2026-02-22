@@ -61,6 +61,11 @@ struct ServerConnectionView: View {
             }
             .onAppear {
               focusedField = .serverUrl
+              if let testUrl = ProcessInfo.processInfo.environment["IMMICH_TEST_SERVER_URL"] {
+                // Strip /api suffix since connectToServer() adds it back
+                serverUrl = testUrl.hasSuffix("/api") ? String(testUrl.dropLast(4)) : testUrl
+                Task { await connectToServer() }
+              }
             }
             .disabled(isLoading)
 

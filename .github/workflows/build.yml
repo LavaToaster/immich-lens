@@ -8,25 +8,25 @@ on:
 
 jobs:
   build-macos:
-    name: Build macOS
+    name: Build & Test macOS
     runs-on: macos-15
     steps:
       - uses: actions/checkout@v4
-      - name: Build
+      - name: Build & Test
         run: |
-          xcodebuild -project ImmichLens.xcodeproj -scheme ImmichLens \
+          xcodebuild test -project ImmichLens.xcodeproj -scheme ImmichLens \
             -destination 'platform=macOS' \
-            -skipPackagePluginValidation \
-            build
+            -only-testing ImmichLensTests \
+            -skipPackagePluginValidation
 
   build-tvos:
-    name: Build tvOS
+    name: Build & Test tvOS
     runs-on: macos-15
     steps:
       - uses: actions/checkout@v4
-      - name: Build
+      - name: Build & Test
         run: |
-          xcodebuild -project ImmichLens.xcodeproj -scheme ImmichLens \
+          xcodebuild test -project ImmichLens.xcodeproj -scheme ImmichLens \
             -destination 'platform=tvOS Simulator,name=Apple TV' \
-            -skipPackagePluginValidation \
-            build
+            -only-testing ImmichLensTests \
+            -skipPackagePluginValidation

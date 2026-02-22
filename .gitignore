@@ -1,2 +1,11 @@
 xcuserdata/
 buildServer.json
+
+# Build output
+build/
+*.ipa
+
+# Screenshots automation
+screenshots/
+*.xcresult
+*.xctestplan

@@ -67,6 +67,13 @@ struct AccountLoginView: View {
           }
           .onAppear {
             focusedField = .email
+            if let testEmail = ProcessInfo.processInfo.environment["IMMICH_TEST_EMAIL"],
+               let testPassword = ProcessInfo.processInfo.environment["IMMICH_TEST_PASSWORD"]
+            {
+              email = testEmail
+              password = testPassword
+              Task { await handleLogin() }
+            }
           }
           .textContentType(.emailAddress)
           .disabled(apiService.isLoading)

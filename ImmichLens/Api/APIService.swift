@@ -24,7 +24,23 @@ class APIService {
   public func initialise() async {
     defer { self.isReady = true }
 
-    if let token = KeychainManager.shared.get(forKey: "immich_token"),
+    // API key bypass for tests that don't need the login flow
+    if let testServerUrl = ProcessInfo.processInfo.environment["IMMICH_TEST_SERVER_URL"],
+      let testApiKey = ProcessInfo.processInfo.environment["IMMICH_TEST_API_KEY"],
+      let url = URL(string: testServerUrl)
+    {
+      self.serverUrl = testServerUrl
+      self.client = createClient(url: url, token: testApiKey)
+      self.token = testApiKey
+      self.isAuthenticated = true
+      return
+    }
+
+    // In test runner mode, skip keychain so the login UI is always shown
+    let isTestRunner = ProcessInfo.processInfo.environment["IMMICH_TEST_EMAIL"] != nil
+
+    if !isTestRunner,
+      let token = KeychainManager.shared.get(forKey: "immich_token"),
       let serverUrl = KeychainManager.shared.get(forKey: "immich_server_url"),
       let url = URL(string: serverUrl)
     {

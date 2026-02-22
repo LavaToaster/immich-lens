@@ -5,6 +5,7 @@
 //  Created by Adam Lavin on 04/05/2025.
 //
 
+import Nuke
 import OpenAPIRuntime
 import OpenAPIURLSession
 import SwiftUI
@@ -29,6 +30,17 @@ struct ImmichLensApp: App {
             .environment(apiService)
             .task {
                 await apiService.initialise()
+            }
+            .onChange(of: apiService.token) { _, token in
+                if let token {
+                    let config = URLSessionConfiguration.default
+                    config.httpAdditionalHeaders = ["x-api-key": token]
+                    ImagePipeline.shared = ImagePipeline {
+                        $0.dataLoader = DataLoader(configuration: config)
+                    }
+                } else {
+                    ImagePipeline.shared = ImagePipeline()
+                }
             }
             .onChange(of: apiService.isAuthenticated) { _, authenticated in
                 if !authenticated {

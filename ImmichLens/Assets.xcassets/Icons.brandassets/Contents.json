@@ -1,10 +1,6 @@
 {
   "assets" : [
     {
-      "filename" : "macOS Generic Icon.iconset",
-      "unassigned" : true
-    },
-    {
       "filename" : "tvOS App Icon - App Store.imagestack",
       "idiom" : "tv",
       "role" : "primary-app-icon",
