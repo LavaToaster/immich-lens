@@ -66,20 +66,27 @@ struct ExploreView: View {
             }
 
             ScrollView(.horizontal) {
-                LazyHStack(spacing: 28) {
+                LazyHStack(spacing: 16) {
                     ForEach(people) { person in
                         NavigationLink(value: person) {
                             PersonCell(person: person)
                         }
-                        .buttonBorderShape(.circle)
                         #if os(tvOS)
+                        .buttonBorderShape(.circle)
                         .buttonStyle(.borderless)
                         #else
                         .buttonStyle(.plain)
                         #endif
                     }
                 }
+                #if os(tvOS)
                 .padding(20)
+                #else
+                .padding(.bottom, 8)
+                #endif
+                #if os(macOS)
+                .frame(height: 160)
+                #endif
             }
             .scrollIndicators(.hidden)
             .scrollClipDisabled()
@@ -109,7 +116,11 @@ struct ExploreView: View {
                         #endif
                     }
                 }
+                #if os(tvOS)
                 .padding(20)
+                #else
+                .padding(.bottom, 8)
+                #endif
             }
             .scrollIndicators(.hidden)
         }
@@ -164,7 +175,7 @@ private struct PlaceCell: View {
     #if os(tvOS)
     private static let size = CGSize(width: 240, height: 160)
     #else
-    private static let size = CGSize(width: 180, height: 120)
+    private static let size = CGSize(width: 280, height: 180)
     #endif
 
     private static let thumbnailProcessors: [ImageProcessing] = [
@@ -190,6 +201,9 @@ private struct PlaceCell: View {
                         }
                 }
             }
+            #if os(macOS)
+            .clipShape(.rect(cornerRadius: 8))
+            #endif
 
             Text(place.city)
                 .font(.caption)

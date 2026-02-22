@@ -11,8 +11,8 @@ struct AlbumsView: View {
     private let columns = Array(repeating: GridItem(.flexible(), spacing: 40), count: 4)
     private let spacing: CGFloat = 40
     #else
-    private let columns = Array(repeating: GridItem(.flexible(), spacing: 24), count: 5)
-    private let spacing: CGFloat = 24
+    private let columns = [GridItem(.adaptive(minimum: 160, maximum: 240), spacing: 16)]
+    private let spacing: CGFloat = 16
     #endif
 
     @State private var navigationPath = NavigationPath()
@@ -25,6 +25,9 @@ struct AlbumsView: View {
                     AlbumAssetsView(album: album)
                         .environment(apiService)
                 }
+                #if os(macOS)
+                .navigationTitle("Albums")
+                #endif
         }
         .refreshNavigationOnTabSwitch(tab: .library(.albums)) {
             navigationPath = NavigationPath()
@@ -113,6 +116,9 @@ private struct AlbumCell: View {
                     }
                 }
                 .aspectRatio(1, contentMode: .fill)
+                #if os(macOS)
+                .clipShape(.rect(cornerRadius: 8))
+                #endif
             }
 
             Text(album.name)

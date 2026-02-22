@@ -11,8 +11,8 @@ struct PeopleView: View {
     private let columns = Array(repeating: GridItem(.flexible(), spacing: 40), count: 5)
     private let spacing: CGFloat = 40
     #else
-    private let columns = Array(repeating: GridItem(.flexible(), spacing: 24), count: 6)
-    private let spacing: CGFloat = 24
+    private let columns = [GridItem(.adaptive(minimum: 150, maximum: 220), spacing: 12)]
+    private let spacing: CGFloat = 12
     #endif
 
     @State private var navigationPath = NavigationPath()
@@ -25,6 +25,9 @@ struct PeopleView: View {
                     PersonAssetsView(person: person)
                         .environment(apiService)
                 }
+                #if os(macOS)
+                .navigationTitle("People")
+                #endif
         }
         .refreshNavigationOnTabSwitch(tab: .people) {
             navigationPath = NavigationPath()
@@ -52,13 +55,13 @@ struct PeopleView: View {
                             NavigationLink(value: person) {
                                 PersonCell(person: person)
                             }
-                            .buttonBorderShape(.circle)
-                            .focused($focusedPerson, equals: person.id)
                             #if os(tvOS)
+                            .buttonBorderShape(.circle)
                             .buttonStyle(.borderless)
                             #else
                             .buttonStyle(.plain)
                             #endif
+                            .focused($focusedPerson, equals: person.id)
                         }
                     }
                     .padding()
@@ -82,7 +85,6 @@ struct PeopleView: View {
 
             self.people = dto.people
                 .map { Person(from: $0, serverUrl: serverUrl) }
-                .filter { !$0.name.isEmpty }
         } catch {
             logger.error("Failed to fetch people: \(error.localizedDescription)")
         }
@@ -93,12 +95,11 @@ struct PersonCell: View {
     let person: Person
 
     #if os(tvOS)
-    private static let size: CGFloat = 200
+    private static let thumbnailSize = CGSize(width: 200, height: 200)
     #else
-    private static let size: CGFloat = 120
+    private static let thumbnailSize = CGSize(width: 300, height: 400)
     #endif
 
-    private static let thumbnailSize = CGSize(width: 200, height: 200)
     private static let thumbnailProcessors: [ImageProcessing] = [
         .resize(size: thumbnailSize, crop: true),
     ]
@@ -109,6 +110,51 @@ struct PersonCell: View {
     }
 
     var body: some View {
+        #if os(macOS)
+        macOSCell
+        #else
+        tvOSCell
+        #endif
+    }
+
+    #if os(macOS)
+    private var macOSCell: some View {
+        ZStack(alignment: .bottomLeading) {
+            if let request = thumbnailRequest {
+                LazyImage(request: request) { state in
+                    if let image = state.image {
+                        image
+                            .resizable()
+                            .scaledToFill()
+                    } else if state.error != nil {
+                        placeholderView
+                    } else {
+                        Color.gray.opacity(0.2)
+                    }
+                }
+            } else {
+                placeholderView
+            }
+
+            LinearGradient(
+                colors: [.black.opacity(0.6), .clear],
+                startPoint: .bottom,
+                endPoint: .center
+            )
+
+            Text(person.name)
+                .font(.callout.weight(.semibold))
+                .foregroundStyle(.white)
+                .lineLimit(1)
+                .padding(10)
+        }
+        .aspectRatio(3.0 / 4.0, contentMode: .fill)
+        .clipShape(.rect(cornerRadius: 10))
+    }
+    #else
+    private static let size: CGFloat = 200
+
+    private var tvOSCell: some View {
         VStack(spacing: 12) {
             if let request = thumbnailRequest {
                 LazyImage(request: request) { state in
@@ -134,6 +180,7 @@ struct PersonCell: View {
                 .truncationMode(.tail)
         }
     }
+    #endif
 
     private var placeholderView: some View {
         ZStack {
