@@ -42,11 +42,25 @@ struct Asset: Codable, Hashable, Identifiable {
         case thumbnail = "thumbnail"
     }
 
-    private static let dateParser: ISO8601DateFormatter = {
-        let f = ISO8601DateFormatter()
-        f.formatOptions = [.withInternetDateTime, .withFractionalSeconds]
-        return f
+    private static let dateParsers: [ISO8601DateFormatter] = {
+        let variants: [[ISO8601DateFormatter.Options]] = [
+            [.withInternetDateTime, .withFractionalSeconds],
+            [.withInternetDateTime],
+            [.withFullDate, .withTime, .withDashSeparatorInDate, .withColonSeparatorInTime],
+        ]
+        return variants.map { opts in
+            let f = ISO8601DateFormatter()
+            f.formatOptions = ISO8601DateFormatter.Options(opts)
+            return f
+        }
     }()
+
+    private static func parseDate(_ string: String) -> Date? {
+        for parser in dateParsers {
+            if let date = parser.date(from: string) { return date }
+        }
+        return nil
+    }
 
     init(from dto: Components.Schemas.TimeBucketAssetResponseDto, idx: Int, serverUrl: String) {
         self.id = dto.id[idx]
@@ -55,7 +69,7 @@ struct Asset: Codable, Hashable, Identifiable {
         self.duration = dto.duration[idx]
         self.city = dto.city[idx]
         self.country = dto.country[idx]
-        self.fileCreatedAt = Self.dateParser.date(from: dto.fileCreatedAt[idx])
+        self.fileCreatedAt = Self.parseDate(dto.fileCreatedAt[idx])
         self.isFavorite = dto.isFavorite[idx]
         self.serverUrl = serverUrl
     }
