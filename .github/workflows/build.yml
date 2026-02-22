@@ -12,23 +12,29 @@ jobs:
     runs-on: macos-26
     steps:
       - uses: actions/checkout@v4
+      - name: Install xcbeautify
+        run: brew install xcbeautify
       - name: Build & Test
         run: |
+          set -o pipefail
           xcodebuild test -project ImmichLens.xcodeproj -scheme ImmichLens \
             -destination 'platform=macOS' \
             -only-testing ImmichLensTests \
             -skipPackagePluginValidation \
-            CODE_SIGNING_ALLOWED=NO
+            CODE_SIGNING_ALLOWED=NO 2>&1 | xcbeautify
 
   build-tvos:
     name: Build & Test tvOS
     runs-on: macos-26
     steps:
       - uses: actions/checkout@v4
+      - name: Install xcbeautify
+        run: brew install xcbeautify
       - name: Build & Test
         run: |
+          set -o pipefail
           xcodebuild test -project ImmichLens.xcodeproj -scheme ImmichLens \
             -destination 'platform=tvOS Simulator,name=Apple TV' \
             -only-testing ImmichLensTests \
             -skipPackagePluginValidation \
-            CODE_SIGNING_ALLOWED=NO
+            CODE_SIGNING_ALLOWED=NO 2>&1 | xcbeautify
