@@ -17,7 +17,8 @@ jobs:
           xcodebuild test -project ImmichLens.xcodeproj -scheme ImmichLens \
             -destination 'platform=macOS' \
             -only-testing ImmichLensTests \
-            -skipPackagePluginValidation
+            -skipPackagePluginValidation \
+            CODE_SIGNING_ALLOWED=NO
 
   build-tvos:
     name: Build & Test tvOS
@@ -29,4 +30,5 @@ jobs:
           xcodebuild test -project ImmichLens.xcodeproj -scheme ImmichLens \
             -destination 'platform=tvOS Simulator,name=Apple TV' \
             -only-testing ImmichLensTests \
-            -skipPackagePluginValidation
+            -skipPackagePluginValidation \
+            CODE_SIGNING_ALLOWED=NO

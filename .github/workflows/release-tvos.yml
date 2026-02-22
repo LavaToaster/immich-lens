@@ -64,21 +64,9 @@ jobs:
           api-key-id: ${{ vars.APPSTORE_API_KEY_ID }}
           api-private-key: ${{ secrets.APPSTORE_API_PRIVATE_KEY }}
 
-      - name: Resolve provisioning profile
-        id: profile
-        run: |
-          PROFILE_PATH=$(ls ~/Library/MobileDevice/Provisioning\ Profiles/*.mobileprovision 2>/dev/null | head -1)
-          if [[ -z "$PROFILE_PATH" ]]; then
-            echo "::error::No provisioning profile found"
-            exit 1
-          fi
-          PROFILE_NAME=$(security cms -D -i "$PROFILE_PATH" | plutil -extract Name raw -)
-          echo "name=$PROFILE_NAME" >> "$GITHUB_OUTPUT"
-          echo "Resolved profile: $PROFILE_NAME"
-
       - name: Generate ExportOptions.plist
         env:
-          PROFILE_NAME: ${{ steps.profile.outputs.name }}
+          PROFILE_NAME: Immich Lens tvOS App Store Connect
         run: |
           cat > ExportOptions.plist << PLIST
           <?xml version="1.0" encoding="UTF-8"?>
@@ -106,7 +94,7 @@ jobs:
         env:
           MARKETING_VERSION: ${{ steps.version.outputs.marketing_version }}
           BUILD_NUMBER: ${{ steps.version.outputs.build_number }}
-          PROFILE_SPECIFIER: ${{ steps.profile.outputs.name }}
+          PROFILE_SPECIFIER: Immich Lens tvOS App Store Connect
         run: |
           xcodebuild archive \
             -project ImmichLens.xcodeproj \
