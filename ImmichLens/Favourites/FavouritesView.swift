@@ -18,5 +18,8 @@ struct FavouritesView: View {
         NavigationStack(path: $navigationPath) {
             AssetCollectionView(source: FavouritesSource())
         }
+        .refreshNavigationOnTabSwitch(tab: .library(.favourites)) {
+            navigationPath = NavigationPath()
+        }
     }
 }

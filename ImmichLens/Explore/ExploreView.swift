@@ -23,6 +23,7 @@ struct ExploreView: View {
                 .navigationTitle("Explore")
                 #endif
         }
+        .refreshNavigationOnTabSwitch(tab: .explore)
         .task {
             await loadData()
         }

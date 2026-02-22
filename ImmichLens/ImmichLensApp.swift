@@ -94,6 +94,7 @@ struct ImmichLensApp: App {
         .tabViewStyle(.tabBarOnly)
         #else
         .tabViewStyle(.sidebarAdaptable)
+        .environment(\.activeTab, selection)
         #endif
     }
 }
@@ -115,4 +116,50 @@ enum LibraryTabs: Equatable, Hashable, Identifiable {
     case favourites
 
     var id: Self { self }
+}
+
+// MARK: - Active Tab Navigation Fix
+
+private struct ActiveTabKey: EnvironmentKey {
+    static let defaultValue: RootTabs = .photos
+}
+
+extension EnvironmentValues {
+    var activeTab: RootTabs {
+        get { self[ActiveTabKey.self] }
+        set { self[ActiveTabKey.self] = newValue }
+    }
+}
+
+#if os(macOS)
+/// Forces NavigationStack recreation when returning to a tab, working around
+/// a SwiftUI bug where navigation destinations stop responding after switching
+/// tabs with .sidebarAdaptable.
+private struct RefreshNavigationOnTabSwitch: ViewModifier {
+    let tab: RootTabs
+    let onRefresh: (() -> Void)?
+    @Environment(\.activeTab) private var activeTab
+    @State private var stackID = UUID()
+
+    func body(content: Content) -> some View {
+        content
+            .id(stackID)
+            .onChange(of: activeTab) { old, new in
+                if old != tab && new == tab {
+                    onRefresh?()
+                    stackID = UUID()
+                }
+            }
+    }
+}
+#endif
+
+extension View {
+    func refreshNavigationOnTabSwitch(tab: RootTabs, onRefresh: (() -> Void)? = nil) -> some View {
+        #if os(macOS)
+        modifier(RefreshNavigationOnTabSwitch(tab: tab, onRefresh: onRefresh))
+        #else
+        self
+        #endif
+    }
 }

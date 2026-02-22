@@ -19,5 +19,8 @@ struct PhotosView: View {
         NavigationStack(path: $navigationPath) {
             AssetCollectionView(source: TimelineSource())
         }
+        .refreshNavigationOnTabSwitch(tab: .photos) {
+            navigationPath = NavigationPath()
+        }
     }
 }

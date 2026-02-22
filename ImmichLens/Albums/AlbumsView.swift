@@ -26,6 +26,9 @@ struct AlbumsView: View {
                         .environment(apiService)
                 }
         }
+        .refreshNavigationOnTabSwitch(tab: .library(.albums)) {
+            navigationPath = NavigationPath()
+        }
         .task {
             await loadAlbums()
         }

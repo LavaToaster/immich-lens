@@ -50,3 +50,7 @@ More on SweetPad: [docs][sweetpad-docs] | [autocomplete setup][sweetpad-autocomp
 [sweetpad]: https://marketplace.visualstudio.com/items?itemName=SweetPad.sweetpad
 [sweetpad-docs]: https://sweetpad.hyzyla.dev/docs/intro
 [sweetpad-autocomplete]: https://sweetpad.hyzyla.dev/docs/autocomplete
+
+## Attribution
+
+The tab-switch navigation fix (recreating `NavigationStack` on reactivation to work around a SwiftUI `.sidebarAdaptable` bug) was inspired by [ShelfPlayer](https://github.com/rasmuslos/ShelfPlayer)'s `NavigationStackWrapper` pattern.

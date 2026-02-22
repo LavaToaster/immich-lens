@@ -26,6 +26,9 @@ struct PeopleView: View {
                         .environment(apiService)
                 }
         }
+        .refreshNavigationOnTabSwitch(tab: .people) {
+            navigationPath = NavigationPath()
+        }
         .task {
             await loadPeople()
         }
