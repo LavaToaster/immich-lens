@@ -4,6 +4,7 @@ buildServer.json
 # Build output
 build/
 *.ipa
+ExportOptions.plist
 
 # Screenshots automation
 screenshots/
