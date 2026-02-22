@@ -10,7 +10,6 @@ import OpenAPIURLSession
 import SwiftUI
 
 struct ServerConnectionView: View {
-  @Environment(APIService.self) private var apiService
   @State private var isLoading: Bool = false
   @State private var serverUrl: String = ""
   @State private var errorMessage: String? = nil
@@ -51,23 +50,19 @@ struct ServerConnectionView: View {
 
         VStack(spacing: 16) {
           TextField("Server URL", text: $serverUrl)
-            .textFieldStyle(.automatic)
+            .textContentType(.URL)
+            .autocorrectionDisabled()
+            #if !os(macOS)
+            .textInputAutocapitalization(.never)
+            #endif
             .focused($focusedField, equals: .serverUrl)
-            .submitLabel(.continue)
+            .submitLabel(.go)
             .onSubmit {
               if !serverUrl.isEmpty {
-                focusedField = .connectButton
-              }
-            }
-            .onAppear {
-              focusedField = .serverUrl
-              if let testUrl = ProcessInfo.processInfo.environment["IMMICH_TEST_SERVER_URL"] {
-                // Strip /api suffix since connectToServer() adds it back
-                serverUrl = testUrl.hasSuffix("/api") ? String(testUrl.dropLast(4)) : testUrl
+                errorMessage = nil
                 Task { await connectToServer() }
               }
             }
-            .disabled(isLoading)
 
           Button(action: {
             errorMessage = nil
@@ -75,19 +70,17 @@ struct ServerConnectionView: View {
               await connectToServer()
             }
           }) {
-            if isLoading {
-              ProgressView()
-                .progressViewStyle(.circular)
-                .padding()
-            } else {
-              Text("Connect")
-                .frame(width: 200)
-            }
+            Text("Connect")
+              .frame(width: 200)
           }
           .buttonStyle(.borderedProminent)
           .focused($focusedField, equals: .connectButton)
           .disabled(serverUrl.isEmpty || isLoading)
+          #if os(macOS)
+          .keyboardShortcut(.defaultAction)
+          #endif
         }
+        .disabled(isLoading)
         #if os(macOS)
         .frame(maxWidth: 400)
         #endif
@@ -101,6 +94,13 @@ struct ServerConnectionView: View {
         Spacer()
       }
       .padding()
+      .onAppear {
+        focusedField = .serverUrl
+        if let testUrl = ProcessInfo.processInfo.environment["IMMICH_TEST_SERVER_URL"] {
+          serverUrl = testUrl.hasSuffix("/api") ? String(testUrl.dropLast(4)) : testUrl
+          Task { await connectToServer() }
+        }
+      }
       .navigationDestination(isPresented: $shouldNavigateToLogin) {
         AccountLoginView(serverUrl: serverUrl + "/api")
       }
@@ -131,6 +131,7 @@ struct ServerConnectionView: View {
     } catch {
       logger.error("Error connecting to server: \(error.localizedDescription)")
       errorMessage = "Error connecting to server: \(error.localizedDescription)"
+      focusedField = .serverUrl
     }
   }
 }

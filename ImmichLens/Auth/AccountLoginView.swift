@@ -22,7 +22,6 @@ struct AccountLoginView: View {
   enum FocusField {
     case email
     case password
-    case loginButton
   }
 
   #if os(tvOS)
@@ -37,6 +36,10 @@ struct AccountLoginView: View {
       return String(serverUrl.dropLast(4))
     }
     return serverUrl
+  }
+
+  private var canSubmit: Bool {
+    !email.isEmpty && !password.isEmpty && !apiService.isLoading
   }
 
   var body: some View {
@@ -60,51 +63,43 @@ struct AccountLoginView: View {
 
       VStack(spacing: 16) {
         TextField("Email", text: $email)
+          .textContentType(.emailAddress)
+          .autocorrectionDisabled()
+          #if !os(macOS)
+          .textInputAutocapitalization(.never)
+          #endif
           .focused($focusedField, equals: .email)
           .submitLabel(.next)
           .onSubmit {
             focusedField = .password
           }
-          .onAppear {
-            focusedField = .email
-            if let testEmail = ProcessInfo.processInfo.environment["IMMICH_TEST_EMAIL"],
-               let testPassword = ProcessInfo.processInfo.environment["IMMICH_TEST_PASSWORD"]
-            {
-              email = testEmail
-              password = testPassword
-              Task { await handleLogin() }
-            }
-          }
-          .textContentType(.emailAddress)
-          .disabled(apiService.isLoading)
 
         SecureField("Password", text: $password)
+          .textContentType(.password)
           .focused($focusedField, equals: .password)
           .submitLabel(.go)
           .onSubmit {
-            focusedField = .loginButton
+            if canSubmit {
+              Task { await handleLogin() }
+            }
           }
-          .disabled(apiService.isLoading)
 
         Button(action: {
           Task {
             await handleLogin()
           }
         }) {
-          if apiService.isLoading {
-            ProgressView()
-              .progressViewStyle(.circular)
-              .frame(width: 200)
-          } else {
-            Text("Log In")
-              .fontWeight(.semibold)
-              .frame(width: 200)
-          }
+          Text("Log In")
+            .fontWeight(.semibold)
+            .frame(width: 200)
         }
         .buttonStyle(.borderedProminent)
-        .focused($focusedField, equals: .loginButton)
-        .disabled(email.isEmpty || password.isEmpty || apiService.isLoading)
+        .disabled(!canSubmit)
+        #if os(macOS)
+        .keyboardShortcut(.defaultAction)
+        #endif
       }
+      .disabled(apiService.isLoading)
       #if os(macOS)
       .frame(maxWidth: 400)
       #endif
@@ -118,6 +113,16 @@ struct AccountLoginView: View {
       Spacer()
     }
     .padding()
+    .onAppear {
+      focusedField = .email
+      if let testEmail = ProcessInfo.processInfo.environment["IMMICH_TEST_EMAIL"],
+         let testPassword = ProcessInfo.processInfo.environment["IMMICH_TEST_PASSWORD"]
+      {
+        email = testEmail
+        password = testPassword
+        Task { await handleLogin() }
+      }
+    }
   }
 
   private func handleLogin() async {
@@ -128,6 +133,7 @@ struct AccountLoginView: View {
     } catch {
       logger.error("Login failed: \(error.localizedDescription)")
       errorMessage = "Login failed: \(error.localizedDescription)"
+      focusedField = .email
     }
   }
 }
