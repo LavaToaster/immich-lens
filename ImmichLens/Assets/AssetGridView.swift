@@ -220,6 +220,12 @@ private struct AssetGridRow: View {
                             .padding(8)
                     }
                 }
+                .overlay(alignment: .bottomTrailing) {
+                    if assets[index].type == .video {
+                        VideoIndicatorOverlay(duration: assets[index].duration)
+                            .padding(8)
+                    }
+                }
                 #else
                 .buttonStyle(.plain)
                 #endif
@@ -271,10 +277,12 @@ struct AssetGridCell: View {
             }
             #endif
 
+            #if !os(tvOS)
             if asset.type == .video {
                 VideoIndicatorOverlay(duration: asset.duration)
                     .padding(8)
             }
+            #endif
         }
     }
 
