@@ -43,7 +43,7 @@ struct AccountLoginView: View {
     VStack(spacing: 24) {
       Spacer()
 
-      Image("AppLogo")
+      Image("Logo")
         .resizable()
         .scaledToFit()
         .frame(width: logoSize, height: logoSize)
