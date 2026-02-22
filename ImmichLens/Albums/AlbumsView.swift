@@ -113,12 +113,26 @@ private struct AlbumCell: View {
                         image
                             .resizable()
                             .scaledToFill()
+                    } else if state.error != nil {
+                        Color.gray.opacity(0.2)
+                            .overlay {
+                                Image(systemName: "exclamationmark.triangle")
+                                    .foregroundStyle(.gray)
+                            }
+                    } else {
+                        Color.gray.opacity(0.2)
                     }
                 }
                 .aspectRatio(1, contentMode: .fill)
                 #if os(macOS)
                 .clipShape(.rect(cornerRadius: 8))
                 #endif
+            } else {
+                Color.gray.opacity(0.2)
+                    .aspectRatio(1, contentMode: .fill)
+                    #if os(macOS)
+                    .clipShape(.rect(cornerRadius: 8))
+                    #endif
             }
 
             Text(album.name)

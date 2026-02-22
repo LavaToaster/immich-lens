@@ -12,14 +12,15 @@ struct AssetGridView: View {
     let columns: Int
     let spacing: CGFloat
     let title: String?
+    let subtitle: String?
     var focusedIndex: FocusState<Int?>.Binding
 
     #if os(tvOS)
-    static let defaultSpacing: CGFloat = 40
-    static let defaultColumns: Int = 5
+        static let defaultSpacing: CGFloat = 40
+        static let defaultColumns: Int = 5
     #else
-    static let defaultSpacing: CGFloat = 2
-    static let defaultColumns: Int = 0  // 0 = auto-calculate on macOS
+        static let defaultSpacing: CGFloat = 2
+        static let defaultColumns: Int = 0  // 0 = auto-calculate on macOS
     #endif
 
     var visibleRange: Binding<Range<Int>>?
@@ -29,6 +30,7 @@ struct AssetGridView: View {
         columns: Int = AssetGridView.defaultColumns,
         spacing: CGFloat = AssetGridView.defaultSpacing,
         title: String? = nil,
+        subtitle: String? = nil,
         focusedIndex: FocusState<Int?>.Binding,
         visibleRange: Binding<Range<Int>>? = nil
     ) {
@@ -36,6 +38,7 @@ struct AssetGridView: View {
         self.columns = columns
         self.spacing = spacing
         self.title = title
+        self.subtitle = subtitle
         self.focusedIndex = focusedIndex
         self.visibleRange = visibleRange
     }
@@ -61,178 +64,245 @@ struct AssetGridView: View {
 
     var body: some View {
         #if os(macOS)
-        macOSGrid
+            macOSGrid
         #else
-        tvOSGrid
+            tvOSGrid
         #endif
     }
 
     #if os(macOS)
-    private static let targetCellSize: CGFloat = 200
+        private static let targetCellSize: CGFloat = 200
 
-    @State private var macColumns: Int = 5
+        @State private var macColumns: Int = 5
 
-    private var macOSGrid: some View {
-        ScrollView {
-            LazyVGrid(
-                columns: Array(repeating: GridItem(.flexible(), spacing: spacing), count: macColumns),
-                spacing: spacing
-            ) {
-                ForEach(Array(assets.enumerated()), id: \.element.id) { index, asset in
-                    NavigationLink(value: asset) {
-                        AssetGridCell(asset: asset)
-                            .aspectRatio(1, contentMode: .fill)
-                            .clipped()
+        private var macOSGrid: some View {
+            ScrollView {
+                LazyVGrid(
+                    columns: Array(
+                        repeating: GridItem(.flexible(), spacing: spacing), count: macColumns),
+                    spacing: spacing
+                ) {
+                    ForEach(Array(assets.enumerated()), id: \.element.id) { index, asset in
+                        NavigationLink(value: asset) {
+                            AssetGridCell(asset: asset)
+                                .aspectRatio(1, contentMode: .fill)
+                                .clipped()
+                        }
+                        .contentShape(Rectangle())
+                        .buttonStyle(.plain)
+                        .focused(focusedIndex, equals: index)
                     }
-                    .contentShape(Rectangle())
-                    .buttonStyle(.plain)
-                    .focused(focusedIndex, equals: index)
                 }
             }
-        }
-        .onGeometryChange(for: CGFloat.self) { geo in
-            geo.size.width
-        } action: { width in
-            if columns > 0 {
-                macColumns = columns
-            } else {
-                let count = max(3, Int(floor((width + spacing) / (Self.targetCellSize + spacing))))
-                macColumns = count
+            .onGeometryChange(for: CGFloat.self) { geo in
+                geo.size.width
+            } action: { width in
+                if columns > 0 {
+                    macColumns = columns
+                } else {
+                    let count = max(
+                        3, Int(floor((width + spacing) / (Self.targetCellSize + spacing))))
+                    macColumns = count
+                }
+            }
+            .onScrollGeometryChange(for: Range<Int>.self) { geo in
+                let cols = self.macColumns
+                let cellSize =
+                    (geo.containerSize.width - CGFloat(cols - 1) * self.spacing) / CGFloat(cols)
+                let rowH = cellSize + self.spacing
+                guard rowH > 0, !self.assets.isEmpty else { return 0..<0 }
+                let offset = max(0, geo.contentOffset.y)
+                let firstRow = Int(floor(offset / rowH))
+                let lastRow = Int(ceil((offset + geo.containerSize.height) / rowH))
+                let firstIdx = firstRow * cols
+                let lastIdx = min((lastRow + 1) * cols, self.assets.count)
+                return firstIdx..<lastIdx
+            } action: { _, newRange in
+                visibleRange?.wrappedValue = newRange
             }
         }
-        .onScrollGeometryChange(for: Range<Int>.self) { geo in
-            let cols = self.macColumns
-            let cellSize = (geo.containerSize.width - CGFloat(cols - 1) * self.spacing) / CGFloat(cols)
-            let rowH = cellSize + self.spacing
-            guard rowH > 0, !self.assets.isEmpty else { return 0..<0 }
-            let offset = max(0, geo.contentOffset.y)
-            let firstRow = Int(floor(offset / rowH))
-            let lastRow = Int(ceil((offset + geo.containerSize.height) / rowH))
-            let firstIdx = firstRow * cols
-            let lastIdx = min((lastRow + 1) * cols, self.assets.count)
-            return firstIdx..<lastIdx
-        } action: { _, newRange in
-            visibleRange?.wrappedValue = newRange
-        }
-    }
     #else
-    private static let headerHeight: CGFloat = 80
+        private struct ContainerMetrics: Equatable {
+            var width: CGFloat
+            var safeAreaLeading: CGFloat
+        }
 
-    private var hasHeader: Bool {
-        if let title, !title.isEmpty { return true }
-        return false
-    }
+        private struct ScrollState: Equatable {
+            var visibleRows: Range<Int>
+            var headerIsSticky: Bool
+        }
 
-    private var headerOffset: CGFloat {
-        hasHeader ? Self.headerHeight + spacing : 0
-    }
+        private static let headerHeight: CGFloat = 60
+        private static let stickyTopPadding: CGFloat = 30
+        private static let vignetteOverflow: CGFloat = 40
 
-    private var tvOSGrid: some View {
-        ScrollView {
-            VStack(spacing: 0) {
-                if let title, !title.isEmpty {
+        @State private var headerIsSticky = false
+        // Default to standard tvOS overscan inset; simulator reports 0.
+        @State private var safeAreaLeading: CGFloat = 90
+
+        private var hasHeader: Bool {
+            if let title, !title.isEmpty { return true }
+            return false
+        }
+
+        private var headerOffset: CGFloat {
+            hasHeader ? Self.headerHeight + spacing : 0
+        }
+
+        @ViewBuilder
+        private var tvOSHeaderContent: some View {
+            if let title, !title.isEmpty {
+                VStack(alignment: .leading, spacing: 4) {
                     Text(title)
-                        .font(.title)
+                        .font(.headline)
                         .bold()
-                        .frame(maxWidth: .infinity, alignment: .leading)
-                        .padding(.horizontal, spacing)
+
+                    if let subtitle, !subtitle.isEmpty {
+                        Text(subtitle)
+                            .font(.subheadline)
+                            .foregroundStyle(.secondary)
+                    }
+                }
+                .frame(maxWidth: .infinity, alignment: .leading)
+            }
+        }
+
+        private var tvOSGrid: some View {
+            ZStack(alignment: .top) {
+                ScrollView {
+                    VStack(spacing: 0) {
+                        if hasHeader {
+                            tvOSHeaderContent
+                                .padding(.horizontal, spacing)
+                                .frame(height: Self.headerHeight)
+                                .padding(.bottom, spacing)
+                        }
+
+                        if visibleRows.lowerBound > 0 {
+                            Color.clear
+                                .frame(height: CGFloat(visibleRows.lowerBound) * rowHeight)
+                        }
+
+                        ForEach(Array(visibleRows), id: \.self) { row in
+                            AssetGridRow(
+                                assets: assets,
+                                row: row,
+                                columns: columns,
+                                cellSize: cellSize,
+                                spacing: spacing,
+                                focusedIndex: focusedIndex
+                            )
+                            .frame(height: rowHeight)
+                        }
+
+                        let rowsBelow = totalRows - visibleRows.upperBound
+                        if rowsBelow > 0 {
+                            Color.clear
+                                .frame(height: CGFloat(rowsBelow) * rowHeight)
+                        }
+                    }
+                    .frame(height: CGFloat(totalRows) * rowHeight + headerOffset, alignment: .top)
+                }
+                .onGeometryChange(for: ContainerMetrics.self) { geo in
+                    ContainerMetrics(width: geo.size.width, safeAreaLeading: geo.safeAreaInsets.leading)
+                } action: { _, new in
+                    containerWidth = new.width
+                    if new.safeAreaLeading > 0 { safeAreaLeading = new.safeAreaLeading }
+                }
+                .onScrollGeometryChange(for: ScrollState.self) { geo in
+                    let offset = max(0, geo.contentOffset.y - self.headerOffset)
+                    let vpHeight = geo.containerSize.height
+                    let rowH = self.rowHeight
+                    let rows = self.totalRows
+                    guard rowH > 0, rows > 0 else {
+                        return ScrollState(visibleRows: 0..<0, headerIsSticky: false)
+                    }
+                    let first = max(0, Int(floor(offset / rowH)) - Self.bufferRows)
+                    let last = min(
+                        rows - 1, Int(ceil((offset + vpHeight) / rowH)) + Self.bufferRows)
+                    let shouldPin = geo.contentOffset.y >= self.headerOffset
+                    return ScrollState(visibleRows: first..<(last + 1), headerIsSticky: shouldPin)
+                } action: { _, new in
+                    visibleRows = new.visibleRows
+                    let firstIdx = new.visibleRows.lowerBound * columns
+                    let lastIdx = min(new.visibleRows.upperBound * columns, assets.count)
+                    visibleRange?.wrappedValue = firstIdx..<lastIdx
+                    headerIsSticky = new.headerIsSticky && hasHeader
+                }
+
+                if headerIsSticky {
+                    let vignetteHeight = Self.stickyTopPadding + Self.headerHeight + Self.vignetteOverflow
+
+                    tvOSHeaderContent
+                        .padding(.horizontal, safeAreaLeading + spacing)
                         .frame(height: Self.headerHeight)
-                        .padding(.bottom, spacing)
-                }
-
-                if visibleRows.lowerBound > 0 {
-                    Color.clear
-                        .frame(height: CGFloat(visibleRows.lowerBound) * rowHeight)
-                }
-
-                ForEach(Array(visibleRows), id: \.self) { row in
-                    AssetGridRow(
-                        assets: assets,
-                        row: row,
-                        columns: columns,
-                        cellSize: cellSize,
-                        spacing: spacing,
-                        focusedIndex: focusedIndex
-                    )
-                    .frame(height: rowHeight)
-                }
-
-                let rowsBelow = totalRows - visibleRows.upperBound
-                if rowsBelow > 0 {
-                    Color.clear
-                        .frame(height: CGFloat(rowsBelow) * rowHeight)
+                        .frame(maxWidth: .infinity, alignment: .leading)
+                        .padding(.top, Self.stickyTopPadding)
+                        .ignoresSafeArea(edges: [.top, .horizontal])
+                        .background(alignment: .top) {
+                            EllipticalGradient(
+                                stops: [
+                                    .init(color: .black.opacity(0.7), location: 0),
+                                    .init(color: .black.opacity(0.3), location: 0.5),
+                                    .init(color: .clear, location: 0.85),
+                                ],
+                                center: .top,
+                                startRadiusFraction: 0,
+                                endRadiusFraction: 1
+                            )
+                            .frame(height: vignetteHeight)
+                            .ignoresSafeArea(edges: [.top, .horizontal])
+                        }
                 }
             }
-            .frame(height: CGFloat(totalRows) * rowHeight + headerOffset, alignment: .top)
         }
-        .onGeometryChange(for: CGFloat.self) { geo in
-            geo.size.width
-        } action: { newWidth in
-            containerWidth = newWidth
-        }
-        .onScrollGeometryChange(for: Range<Int>.self) { geo in
-            let offset = max(0, geo.contentOffset.y - headerOffset)
-            let vpHeight = geo.containerSize.height
-            let rowH = self.rowHeight
-            let rows = self.totalRows
-            guard rowH > 0, rows > 0 else { return 0..<0 }
-            let first = max(0, Int(floor(offset / rowH)) - Self.bufferRows)
-            let last = min(rows - 1, Int(ceil((offset + vpHeight) / rowH)) + Self.bufferRows)
-            return first..<(last + 1)
-        } action: { _, newRange in
-            visibleRows = newRange
-            let firstIdx = newRange.lowerBound * columns
-            let lastIdx = min(newRange.upperBound * columns, assets.count)
-            visibleRange?.wrappedValue = firstIdx..<lastIdx
-        }
-    }
     #endif
 }
 
 #if !os(macOS)
-private struct AssetGridRow: View {
-    let assets: [Asset]
-    let row: Int
-    let columns: Int
-    let cellSize: CGFloat
-    let spacing: CGFloat
-    var focusedIndex: FocusState<Int?>.Binding
+    private struct AssetGridRow: View {
+        let assets: [Asset]
+        let row: Int
+        let columns: Int
+        let cellSize: CGFloat
+        let spacing: CGFloat
+        var focusedIndex: FocusState<Int?>.Binding
 
-    var body: some View {
-        let startIndex = row * columns
-        let endIndex = min(startIndex + columns, assets.count)
+        var body: some View {
+            let startIndex = row * columns
+            let endIndex = min(startIndex + columns, assets.count)
 
-        HStack(spacing: spacing) {
-            ForEach(startIndex..<endIndex, id: \.self) { index in
-                NavigationLink(value: assets[index]) {
-                    AssetGridCell(asset: assets[index])
-                        .frame(width: cellSize, height: cellSize)
-                }
-                .focused(focusedIndex, equals: index)
-                #if os(tvOS)
-                .buttonStyle(.borderless)
-                .overlay(alignment: .bottomLeading) {
-                    if assets[index].isFavorite {
-                        Image(systemName: "heart.fill")
-                            .font(.caption2)
-                            .foregroundStyle(.white)
-                            .shadow(radius: 2)
-                            .padding(8)
+            HStack(spacing: spacing) {
+                ForEach(startIndex..<endIndex, id: \.self) { index in
+                    NavigationLink(value: assets[index]) {
+                        AssetGridCell(asset: assets[index])
+                            .frame(width: cellSize, height: cellSize)
                     }
+                    .focused(focusedIndex, equals: index)
+                    #if os(tvOS)
+                        .buttonStyle(.borderless)
+                        .overlay(alignment: .bottomLeading) {
+                            if assets[index].isFavorite {
+                                Image(systemName: "heart.fill")
+                                .font(.caption2)
+                                .foregroundStyle(.white)
+                                .shadow(radius: 2)
+                                .padding(8)
+                            }
+                        }
+                        .overlay(alignment: .bottomTrailing) {
+                            if assets[index].type == .video {
+                                VideoIndicatorOverlay(duration: assets[index].duration)
+                                .padding(8)
+                            }
+                        }
+                    #else
+                        .buttonStyle(.plain)
+                    #endif
                 }
-                .overlay(alignment: .bottomTrailing) {
-                    if assets[index].type == .video {
-                        VideoIndicatorOverlay(duration: assets[index].duration)
-                            .padding(8)
-                    }
-                }
-                #else
-                .buttonStyle(.plain)
-                #endif
             }
         }
     }
-}
 #endif
 
 struct AssetGridCell: View {
@@ -240,7 +310,7 @@ struct AssetGridCell: View {
 
     private static let thumbnailSize = CGSize(width: 200, height: 200)
     private static let thumbnailProcessors: [ImageProcessing] = [
-        .resize(size: thumbnailSize, crop: true),
+        .resize(size: thumbnailSize, crop: true)
     ]
 
     private var thumbnailRequest: ImageRequest? {
@@ -267,21 +337,21 @@ struct AssetGridCell: View {
             }
 
             #if !os(tvOS)
-            if asset.isFavorite {
-                Image(systemName: "heart.fill")
-                    .font(.caption2)
-                    .foregroundStyle(.white)
-                    .shadow(radius: 2)
-                    .frame(maxWidth: .infinity, maxHeight: .infinity, alignment: .bottomLeading)
-                    .padding(8)
-            }
+                if asset.isFavorite {
+                    Image(systemName: "heart.fill")
+                        .font(.caption2)
+                        .foregroundStyle(.white)
+                        .shadow(radius: 2)
+                        .frame(maxWidth: .infinity, maxHeight: .infinity, alignment: .bottomLeading)
+                        .padding(8)
+                }
             #endif
 
             #if !os(tvOS)
-            if asset.type == .video {
-                VideoIndicatorOverlay(duration: asset.duration)
-                    .padding(8)
-            }
+                if asset.type == .video {
+                    VideoIndicatorOverlay(duration: asset.duration)
+                        .padding(8)
+                }
             #endif
         }
     }

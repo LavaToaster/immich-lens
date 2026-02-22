@@ -76,7 +76,6 @@ struct AssetCollectionView<Source: AssetSource>: View {
     @State private var assets: [Asset] = []
     @State private var isLoading = true
     @State private var visibleRange: Range<Int> = 0..<0
-    @State private var gridTitle = ""
     @FocusState private var focusedIndex: Int?
 
     var body: some View {
@@ -108,12 +107,21 @@ struct AssetCollectionView<Source: AssetSource>: View {
                     description: Text(source.emptyMessage)
                 )
             } else {
+                #if os(macOS)
                 AssetGridView(
                     assets: assets,
-                    title: gridTitle,
                     focusedIndex: $focusedIndex,
                     visibleRange: $visibleRange
                 )
+                #else
+                AssetGridView(
+                    assets: assets,
+                    title: tvOSTitle,
+                    subtitle: tvOSSubtitle,
+                    focusedIndex: $focusedIndex,
+                    visibleRange: $visibleRange
+                )
+                #endif
             }
         }
     }
@@ -130,7 +138,6 @@ struct AssetCollectionView<Source: AssetSource>: View {
         do {
             let loaded = try await source.loadAssets(client: client, serverUrl: serverUrl)
             self.assets = loaded
-            self.gridTitle = Self.buildGridTitle(source: source.title, count: loaded.count)
         } catch is CancellationError {
             // Expected when the view is destroyed (e.g. tab switch)
         } catch {
@@ -149,8 +156,24 @@ struct AssetCollectionView<Source: AssetSource>: View {
         return "\(range) · \(count)"
     }
 
-    private static func buildGridTitle(source title: String, count: Int) -> String {
-        guard !title.isEmpty, count > 0 else { return title }
-        return "\(title) · \(count) \(count == 1 ? "item" : "items")"
+    private var visibleDateRange: String {
+        guard !assets.isEmpty else { return "" }
+        let clamped = visibleRange.clamped(to: assets.startIndex..<assets.endIndex)
+        guard !clamped.isEmpty else { return "" }
+        let dates = assets[clamped].compactMap(\.fileCreatedAt)
+        guard let earliest = dates.min(), let latest = dates.max() else { return "" }
+        return formatDateRange(from: earliest, to: latest)
+    }
+
+    private var tvOSTitle: String {
+        if source.title.isEmpty {
+            let dateRange = visibleDateRange
+            return dateRange.isEmpty ? "Photos" : dateRange
+        }
+        return source.title
+    }
+
+    private var tvOSSubtitle: String? {
+        source.title.isEmpty ? nil : visibleDateRange
     }
 }
