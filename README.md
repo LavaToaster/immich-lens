@@ -17,6 +17,20 @@
 
 ---
 
+## Screenshots
+
+<p align="center">
+  <img src="screenshots/01_Photos.png" alt="Photos" width="49%">
+  <img src="screenshots/02_Explore.png" alt="Explore" width="49%">
+</p>
+<p align="center">
+  <img src="screenshots/03_People.png" alt="People" width="49%">
+  <img src="screenshots/04_Albums.png" alt="Albums" width="49%">
+</p>
+<p align="center">
+  <img src="screenshots/05_Favourites.png" alt="Favourites" width="49%">
+</p>
+
 ## Features
 
 - **Photo & Video Timeline** — Browse your entire library in a responsive grid with time-bucket pagination

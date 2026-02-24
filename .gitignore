@@ -6,7 +6,6 @@ build/
 *.ipa
 ExportOptions.plist
 
-# Screenshots automation
-screenshots/
+# Test automation
 *.xcresult
 *.xctestplan
