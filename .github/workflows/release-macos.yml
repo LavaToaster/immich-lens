@@ -1,0 +1,147 @@
+name: Release macOS
+
+on:
+  push:
+    tags:
+      - 'v*'
+  workflow_dispatch:
+    inputs:
+      version:
+        description: 'Marketing version (e.g. 1.2.0). Defaults to tag or project setting.'
+        required: false
+        type: string
+
+jobs:
+  release-macos:
+    name: Archive, Notarize & Release DMG
+    runs-on: macos-26
+    env:
+      ARCHIVE_PATH: build/ImmichLens-macOS.xcarchive
+      EXPORT_PATH: build/export
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+
+      - name: Select Xcode
+        run: sudo xcode-select -s /Applications/Xcode.app
+
+      - name: Install tools
+        run: brew install xcbeautify create-dmg
+
+      - name: Derive version info
+        id: version
+        env:
+          INPUT_VERSION: ${{ inputs.version }}
+        run: |
+          BUILD_NUMBER=$(git rev-list --count HEAD)
+          echo "build_number=$BUILD_NUMBER" >> "$GITHUB_OUTPUT"
+
+          if [[ -n "$INPUT_VERSION" ]]; then
+            VERSION="$INPUT_VERSION"
+            VERSION="${VERSION#v}"
+            VERSION="${VERSION%%-*}"
+          elif [[ "$GITHUB_REF" == refs/tags/v* ]]; then
+            VERSION="${GITHUB_REF#refs/tags/v}"
+            VERSION="${VERSION%%-*}"
+          else
+            VERSION=$(sed -n 's/.*MARKETING_VERSION = \(.*\);/\1/p' ImmichLens.xcodeproj/project.pbxproj | head -1 | tr -d ' ')
+          fi
+
+          echo "marketing_version=$VERSION" >> "$GITHUB_OUTPUT"
+          echo "### Version Info" >> "$GITHUB_STEP_SUMMARY"
+          echo "- **Marketing version:** $VERSION" >> "$GITHUB_STEP_SUMMARY"
+          echo "- **Build number:** $BUILD_NUMBER" >> "$GITHUB_STEP_SUMMARY"
+
+      - name: Import code signing certificate
+        uses: apple-actions/import-codesign-certs@v3
+        with:
+          p12-file-base64: ${{ secrets.DEVELOPERID_CERTIFICATES_FILE_BASE64 }}
+          p12-password: ${{ secrets.DEVELOPERID_CERTIFICATES_PASSWORD }}
+
+      - name: Archive
+        env:
+          MARKETING_VERSION: ${{ steps.version.outputs.marketing_version }}
+          BUILD_NUMBER: ${{ steps.version.outputs.build_number }}
+        run: |
+          set -o pipefail
+          xcodebuild archive \
+            -project ImmichLens.xcodeproj \
+            -scheme ImmichLens \
+            -destination 'generic/platform=macOS' \
+            -archivePath "$ARCHIVE_PATH" \
+            -skipPackagePluginValidation \
+            MARKETING_VERSION="$MARKETING_VERSION" \
+            CURRENT_PROJECT_VERSION="$BUILD_NUMBER" \
+            CODE_SIGNING_ALLOWED=NO 2>&1 | xcbeautify
+
+      - name: Generate ExportOptions.plist
+        run: |
+          cat > ExportOptions.plist << 'PLIST'
+          <?xml version="1.0" encoding="UTF-8"?>
+          <!DOCTYPE plist PUBLIC "-//Apple//DTD PLIST 1.0//EN" "http://www.apple.com/DTDs/PropertyList-1.0.dtd">
+          <plist version="1.0">
+          <dict>
+              <key>method</key>
+              <string>developer-id</string>
+              <key>teamID</key>
+              <string>PV3AE7C4X7</string>
+          </dict>
+          </plist>
+          PLIST
+
+      - name: Export archive
+        run: |
+          set -o pipefail
+          xcodebuild -exportArchive \
+            -archivePath "$ARCHIVE_PATH" \
+            -exportOptionsPlist ExportOptions.plist \
+            -exportPath "$EXPORT_PATH" 2>&1 | xcbeautify
+
+      - name: Create DMG
+        id: dmg
+        env:
+          VERSION: ${{ steps.version.outputs.marketing_version }}
+        run: |
+          DMG_NAME="ImmichLens-${VERSION}.dmg"
+          create-dmg \
+            --volname "ImmichLens" \
+            --window-pos 200 120 \
+            --window-size 600 400 \
+            --icon-size 100 \
+            --icon "ImmichLens.app" 150 190 \
+            --app-drop-link 450 190 \
+            --hide-extension "ImmichLens.app" \
+            "$DMG_NAME" \
+            "$EXPORT_PATH/ImmichLens.app"
+          echo "dmg_path=$DMG_NAME" >> "$GITHUB_OUTPUT"
+
+      - name: Set up notarization credentials
+        env:
+          API_KEY: ${{ secrets.APPSTORE_API_PRIVATE_KEY }}
+          API_KEY_ID: ${{ vars.APPSTORE_API_KEY_ID }}
+        run: |
+          mkdir -p ~/.private_keys
+          echo "$API_KEY" > ~/.private_keys/AuthKey_${API_KEY_ID}.p8
+
+      - name: Notarize DMG
+        env:
+          API_KEY_ID: ${{ vars.APPSTORE_API_KEY_ID }}
+          API_ISSUER_ID: ${{ vars.APPSTORE_ISSUER_ID }}
+          DMG_PATH: ${{ steps.dmg.outputs.dmg_path }}
+        run: |
+          xcrun notarytool submit "$DMG_PATH" \
+            --key ~/.private_keys/AuthKey_${API_KEY_ID}.p8 \
+            --key-id "$API_KEY_ID" \
+            --issuer "$API_ISSUER_ID" \
+            --wait
+
+          xcrun stapler staple "$DMG_PATH"
+
+      - name: Upload DMG to GitHub Release
+        if: startsWith(github.ref, 'refs/tags/')
+        uses: softprops/action-gh-release@v2
+        with:
+          files: ${{ steps.dmg.outputs.dmg_path }}
+          generate_release_notes: true
