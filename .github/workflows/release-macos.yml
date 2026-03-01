@@ -73,8 +73,7 @@ jobs:
             -archivePath "$ARCHIVE_PATH" \
             -skipPackagePluginValidation \
             MARKETING_VERSION="$MARKETING_VERSION" \
-            CURRENT_PROJECT_VERSION="$BUILD_NUMBER" \
-            CODE_SIGNING_ALLOWED=NO 2>&1 | xcbeautify
+            CURRENT_PROJECT_VERSION="$BUILD_NUMBER" 2>&1 | xcbeautify
 
       - name: Generate ExportOptions.plist
         run: |
