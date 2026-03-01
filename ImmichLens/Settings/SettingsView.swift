@@ -7,6 +7,8 @@ struct SettingsView: View {
     @State private var accountToRemove: SavedAccount?
     @State private var activatingAccountId: UUID?
 
+    private var isActivating: Bool { activatingAccountId != nil }
+
     var body: some View {
         #if os(macOS)
             macOSSettings
@@ -50,6 +52,7 @@ struct SettingsView: View {
                 Button("Add Account...") {
                     showingAddAccount = true
                 }
+                .disabled(isActivating)
             }
         }
 
@@ -80,7 +83,7 @@ struct SettingsView: View {
                         }
                     }
                     .buttonStyle(.borderless)
-                    .disabled(activatingAccountId != nil)
+                    .disabled(isActivating)
                 }
 
                 Button(role: .destructive) {
@@ -89,6 +92,7 @@ struct SettingsView: View {
                     Image(systemName: "trash")
                 }
                 .buttonStyle(.borderless)
+                .disabled(isActivating)
             }
         }
 
@@ -137,7 +141,7 @@ struct SettingsView: View {
                     let isActivating = activatingAccountId == account.id
                     HStack(spacing: 24) {
                         Button {
-                            guard !isActive && activatingAccountId == nil else { return }
+                            guard !isActive && !isActivating else { return }
                             activatingAccountId = account.id
                             Task {
                                 await accountStore.activate(
@@ -162,7 +166,7 @@ struct SettingsView: View {
                                 }
                             }
                         }
-                        .disabled(activatingAccountId != nil)
+                        .disabled(isActivating)
                         .frame(maxWidth: .infinity)
 
                         Button {
@@ -171,6 +175,7 @@ struct SettingsView: View {
                             Image(systemName: "trash")
                                 .frame(maxHeight: .infinity)
                         }
+                        .disabled(isActivating)
                         .frame(width: 80)
                     }
                 }
@@ -184,6 +189,7 @@ struct SettingsView: View {
                 Label("Add Account", systemImage: "plus.circle")
                     .padding(.vertical, 8)
             }
+            .disabled(isActivating)
         }
 
         private var tvOSAboutSection: some View {

@@ -57,13 +57,11 @@ class AccountStore {
 
     @discardableResult
     func addAccount(serverUrl: String, email: String, token: String) throws -> SavedAccount {
-        let tokenPrefix = String(token.prefix(8))
-
         // Deduplicate by server+email: update token for existing account
         if let existing = accounts.first(where: {
             $0.serverUrl == serverUrl && $0.email == email
         }) {
-            logger.info("Updating existing account \(existing.email) keychainKey=\(existing.keychainKey) token=\(tokenPrefix)...")
+            logger.info("Updating existing account \(existing.email) keychainKey=\(existing.keychainKey)")
             try KeychainManager.shared.save(token, forKey: existing.keychainKey)
             activeAccountId = existing.id
             saveToDisk()
@@ -71,7 +69,7 @@ class AccountStore {
         }
 
         let account = SavedAccount(id: UUID(), serverUrl: serverUrl, email: email)
-        logger.info("Adding new account \(email) keychainKey=\(account.keychainKey) token=\(tokenPrefix)...")
+        logger.info("Adding new account \(email) keychainKey=\(account.keychainKey)")
         try KeychainManager.shared.save(token, forKey: account.keychainKey)
         accounts.append(account)
         activeAccountId = account.id
@@ -100,14 +98,14 @@ class AccountStore {
 
         guard let token = KeychainManager.shared.get(forKey: account.keychainKey) else {
             logger.error("No token found in keychain for key: \(account.keychainKey)")
+            if activeAccountId == account.id {
+                activeAccountId = nil
+            }
             accounts.removeAll { $0.id == account.id }
             saveToDisk()
             apiService.deactivate()
             return
         }
-
-        let tokenPrefix = String(token.prefix(8))
-        logger.info("Found token for \(account.email): \(tokenPrefix)... serverUrl=\(account.serverUrl)")
 
         let success = await apiService.activate(serverUrl: account.serverUrl, token: token)
         logger.info("Activation result for \(account.email): \(success ? "success" : "failed")")

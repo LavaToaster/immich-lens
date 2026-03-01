@@ -42,8 +42,7 @@ class APIService {
   func activate(serverUrl: String, token: String) async -> Bool {
     guard let url = URL(string: serverUrl) else { return false }
 
-    let tokenPrefix = String(token.prefix(8))
-    logger.info("APIService.activate: serverUrl=\(serverUrl) token=\(tokenPrefix)...")
+    logger.info("APIService.activate: serverUrl=\(serverUrl)")
 
     self.serverUrl = serverUrl
     self.client = createClient(url: url, token: token)
