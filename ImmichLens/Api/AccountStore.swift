@@ -121,6 +121,9 @@ class AccountStore {
                     if actualEmail != account.email {
                         logger.error("TOKEN MISMATCH: expected \(account.email) but token belongs to \(actualEmail). Removing stale token.")
                         KeychainManager.shared.delete(forKey: account.keychainKey)
+                        accounts.removeAll { $0.id == account.id }
+                        activeAccountId = nil
+                        saveToDisk()
                         apiService.deactivate()
                         return
                     }

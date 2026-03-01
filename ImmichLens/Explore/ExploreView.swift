@@ -7,9 +7,10 @@ struct ExploreView: View {
     @State private var people: [Person] = []
     @State private var places: [Place] = []
     @State private var isLoading = true
+    @State private var navigationPath = NavigationPath()
 
     var body: some View {
-        NavigationStack {
+        NavigationStack(path: $navigationPath) {
             content
                 .navigationDestination(for: Person.self) { person in
                     PersonAssetsView(person: person)
@@ -23,9 +24,14 @@ struct ExploreView: View {
                 .navigationTitle("Explore")
                 #endif
         }
-        .refreshNavigationOnTabSwitch(tab: .explore)
+        .refreshNavigationOnTabSwitch(tab: .explore) {
+            navigationPath = NavigationPath()
+        }
         .task(id: apiService.token) {
             await loadData()
+        }
+        .onChange(of: apiService.token) {
+            navigationPath = NavigationPath()
         }
     }
 

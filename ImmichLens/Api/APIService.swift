@@ -50,8 +50,11 @@ class APIService {
     self.token = token
 
     do {
-      let response = try await self.client?.validateAccessToken()
-      let authStatus = try response?.ok.body.json.authStatus ?? false
+      guard let client = self.client else {
+        throw ApiError.notAuthenticated
+      }
+      let response = try await client.validateAccessToken()
+      let authStatus = try response.ok.body.json.authStatus
       if !authStatus {
         throw ApiError.notAuthenticated
       }

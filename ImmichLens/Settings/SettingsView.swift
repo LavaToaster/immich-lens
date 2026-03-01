@@ -5,6 +5,7 @@ struct SettingsView: View {
     @Environment(AccountStore.self) private var accountStore
     @State private var showingAddAccount = false
     @State private var accountToRemove: SavedAccount?
+    @State private var activatingAccountId: UUID?
 
     var body: some View {
         #if os(macOS)
@@ -66,14 +67,20 @@ struct SettingsView: View {
                 if account.id == accountStore.activeAccountId {
                     Image(systemName: "checkmark.circle.fill")
                         .foregroundStyle(.tint)
+                } else if activatingAccountId == account.id {
+                    ProgressView()
+                        .controlSize(.small)
                 } else {
                     Button("Switch") {
+                        activatingAccountId = account.id
                         Task {
                             await accountStore.activate(
                                 account: account, apiService: apiService)
+                            activatingAccountId = nil
                         }
                     }
                     .buttonStyle(.borderless)
+                    .disabled(activatingAccountId != nil)
                 }
 
                 Button(role: .destructive) {
@@ -127,12 +134,15 @@ struct SettingsView: View {
 
                 ForEach(accountStore.accounts) { account in
                     let isActive = account.id == accountStore.activeAccountId
+                    let isActivating = activatingAccountId == account.id
                     HStack(spacing: 24) {
                         Button {
-                            guard !isActive else { return }
+                            guard !isActive && activatingAccountId == nil else { return }
+                            activatingAccountId = account.id
                             Task {
                                 await accountStore.activate(
                                     account: account, apiService: apiService)
+                                activatingAccountId = nil
                             }
                         } label: {
                             HStack {
@@ -144,12 +154,15 @@ struct SettingsView: View {
                                         .foregroundStyle(.secondary)
                                 }
                                 Spacer()
-                                if isActive {
+                                if isActivating {
+                                    ProgressView()
+                                } else if isActive {
                                     Image(systemName: "checkmark")
                                         .foregroundStyle(.tint)
                                 }
                             }
                         }
+                        .disabled(activatingAccountId != nil)
                         .frame(maxWidth: .infinity)
 
                         Button {
