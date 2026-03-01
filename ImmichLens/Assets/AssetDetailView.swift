@@ -23,12 +23,11 @@ struct AssetDetailView: View {
     #if os(tvOS)
     @State private var player = AVPlayer()
     @State private var endOfVideoObserver: Any?
+    @State private var stallObserver: NSKeyValueObservation?
+    @State private var stallCount = 0
+    @State private var stallTimer: Timer?
     @State private var videoPlayerDelegate = VideoPlayerDelegate()
-    @State private var playerVC: AVPlayerViewController = {
-        let vc = AVPlayerViewController()
-        vc.showsPlaybackControls = true
-        return vc
-    }()
+    @State private var playerVC: AVPlayerViewController?
     #endif
     @Environment(APIService.self) private var apiService
 
@@ -52,7 +51,7 @@ struct AssetDetailView: View {
                 .id(currentIndex)
                 .environment(apiService)
                 .frame(width: geometry.size.width, height: geometry.size.height)
-                #else
+                #elseif os(tvOS)
                 ForEach(nearbyIndices, id: \.self) { index in
                     AssetPageView(
                         asset: assets[index],
@@ -64,6 +63,12 @@ struct AssetDetailView: View {
                     .clipped()
                     .offset(x: CGFloat(index - currentIndex) * geometry.size.width)
                 }
+                RemoteInputView(
+                    onSelect: { handleSelect() },
+                    onPlayPause: { handleSelect() },
+                    onLeft: { if currentIndex > 0 { currentIndex -= 1 } },
+                    onRight: { if currentIndex < assets.count - 1 { currentIndex += 1 } }
+                )
                 #endif
             }
             #if !os(macOS)
@@ -78,23 +83,6 @@ struct AssetDetailView: View {
         .navigationTitle(currentAsset.locationTitle)
         .navigationSubtitle(currentAsset.detailSubtitle(index: currentIndex, total: assets.count))
         .toolbarBackgroundVisibility(.hidden, for: .windowToolbar)
-        #endif
-        #if os(tvOS)
-        .focusable(!isPlayingVideo)
-        .onPlayPauseCommand {
-            handleSelect()
-        }
-        .onMoveCommand { direction in
-            guard !isPlayingVideo else { return }
-            switch direction {
-            case .left:
-                if currentIndex > 0 { currentIndex -= 1 }
-            case .right:
-                if currentIndex < assets.count - 1 { currentIndex += 1 }
-            default:
-                break
-            }
-        }
         #endif
         #if os(macOS)
         .focusable()
@@ -116,9 +104,11 @@ struct AssetDetailView: View {
             return .handled
         }
         #endif
+        #if os(macOS)
         .onTapGesture {
             handleSelect()
         }
+        #endif
         .onChange(of: currentIndex) {
             isPlayingVideo = false
         }
@@ -147,52 +137,191 @@ struct AssetDetailView: View {
     private func handleSelect() {
         let asset = currentAsset
         if asset.type == .video && !isPlayingVideo {
+            logger.info("Video playback requested for asset \(asset.id)")
             isPlayingVideo = true
         }
     }
 
     #if os(tvOS)
+    @State private var videoEndpoint: Asset.VideoEndpoint = .transcoded
+
     private func presentVideoPlayer() {
         let asset = assets[currentIndex]
         guard asset.type == .video else { return }
-        guard let videoUrl = asset.videoUrl else { return }
 
-        let videoAsset = asset.createVideoAsset(token: apiService.token)
-            ?? AVURLAsset(url: videoUrl)
-        let playerItem = AVPlayerItem(asset: videoAsset)
-        // Minimize initial buffering for fast start on local network
-        playerItem.preferredForwardBufferDuration = 2.0
+        logger.info("Presenting video player for asset \(asset.id), endpoint: \(String(describing: self.videoEndpoint))")
 
-        endOfVideoObserver = NotificationCenter.default.addObserver(
-            forName: .AVPlayerItemDidPlayToEndTime, object: playerItem, queue: .main
-        ) { _ in
-            Task { @MainActor in
-                dismissVideoPlayer()
-            }
-        }
+        guard loadVideo(endpoint: videoEndpoint) else { return }
 
         videoPlayerDelegate.onDismiss = {
             cleanupVideo()
         }
 
-        // Correct pipeline order per WWDC 2016/503:
-        // 1. Connect player to its output (AVPlayerViewController) BEFORE assigning the item
-        // 2. Signal play intent before loading the item so the pipeline builds correctly
-        playerVC.player = player
-        playerVC.delegate = videoPlayerDelegate
-        player.automaticallyWaitsToMinimizeStalling = false
+        let vc = AVPlayerViewController()
+        vc.player = player
+        vc.delegate = videoPlayerDelegate
+        vc.transportBarCustomMenuItems = [makeEndpointMenu()]
+        playerVC = vc
 
         guard let topVC = topPresentedViewController() else { return }
 
-        topVC.present(playerVC, animated: true) {
-            // 3. Play before assigning item — tells AVPlayer to start immediately once data arrives
+        topVC.present(vc, animated: true) {
             self.player.play()
-            // 4. Assign item LAST — triggers pipeline setup with all outputs already connected
-            self.player.replaceCurrentItem(with: playerItem)
+        }
+    }
+
+    @discardableResult
+    private func loadVideo(endpoint: Asset.VideoEndpoint) -> Bool {
+        let asset = assets[currentIndex]
+        guard asset.type == .video else { return false }
+
+        if let observer = endOfVideoObserver {
+            NotificationCenter.default.removeObserver(observer)
+            endOfVideoObserver = nil
+        }
+
+        resetStallTracking()
+
+        let videoAsset = asset.createVideoAsset(token: apiService.token, endpoint: endpoint)
+        guard let videoAsset else { return false }
+        let playerItem = AVPlayerItem(asset: videoAsset)
+
+        endOfVideoObserver = NotificationCenter.default.addObserver(
+            forName: .AVPlayerItemDidPlayToEndTime, object: playerItem, queue: .main
+        ) { _ in
+            Task { @MainActor in
+                self.dismissVideoPlayer()
+            }
+        }
+
+        player.replaceCurrentItem(with: playerItem)
+        return true
+    }
+
+    private func observeStalls() {
+        stallObserver = player.observe(\.timeControlStatus) { observedPlayer, _ in
+            Task { @MainActor in
+                let status = observedPlayer.timeControlStatus
+
+                if status == .waitingToPlayAtSpecifiedRate {
+                    guard self.stallTimer == nil else { return }
+                    self.stallCount += 1
+                    logger.warning("Video stall #\(self.stallCount)")
+                    self.stallTimer = Timer.scheduledTimer(withTimeInterval: 1, repeats: true) { _ in
+                        Task { @MainActor in
+                            self.stallCount += 1
+                            logger.warning("Video stalling: \(self.stallCount) stall count")
+                            self.checkStallAlert()
+                        }
+                    }
+                } else {
+                    self.stallTimer?.invalidate()
+                    self.stallTimer = nil
+                }
+
+            }
+        }
+    }
+
+    @State private var stallAlertShown = false
+
+    private func showStallAlert(_ message: String) {
+        guard !stallAlertShown else { return }
+        stallAlertShown = true
+
+        let alert = UIAlertController(
+            title: "Playback Issue",
+            message: message,
+            preferredStyle: .alert
+        )
+        alert.addAction(UIAlertAction(title: "OK", style: .default))
+
+        playerVC?.present(alert, animated: true)
+    }
+
+    private func checkStallAlert() {
+        guard stallCount >= 10 else { return }
+
+        let item = player.currentItem
+        let event = item?.accessLog()?.events.last
+        let downloadBitrate = event?.observedBitrate ?? 0
+        let videoBitrate = event?.indicatedBitrate ?? 0
+
+        logger.error("Playback issue detected: \(stallCount) stall count, download: \(String(format: "%.1f", downloadBitrate / 1_000_000)) Mbps, video: \(String(format: "%.1f", videoBitrate / 1_000_000)) Mbps, endpoint: \(String(describing: videoEndpoint))")
+
+        let message: String
+        if videoBitrate > 0 && downloadBitrate > videoBitrate * 1.5 {
+            if videoEndpoint == .transcoded {
+                message = "This video's transcode may be too high for Apple TV. Try lowering the transcoding bitrate in your Immich server settings."
+            } else {
+                message = "This video's format may not stream well on Apple TV. Try switching to Transcoded in the transport bar."
+            }
+        } else if videoBitrate > 0 && downloadBitrate < videoBitrate {
+            if videoEndpoint == .original {
+                message = "Your connection may be too slow for this video. Try switching to Transcoded in the transport bar."
+            } else {
+                message = "Your connection may be too slow for this video."
+            }
+        } else {
+            message = "This video is having trouble playing. Try switching source in the transport bar."
+        }
+
+        showStallAlert(message)
+    }
+
+    private func resetStallTracking(observe: Bool = true) {
+        stallCount = 0
+        stallTimer?.invalidate()
+        stallTimer = nil
+        stallAlertShown = false
+        stallObserver = nil
+        if observe { observeStalls() }
+    }
+
+    private func makeEndpointMenu() -> UIMenu {
+        UIMenu(
+            title: "Source",
+            image: UIImage(systemName: videoEndpoint == .original ? "film" : "play.rectangle"),
+            children: [
+                UIAction(
+                    title: "Original",
+                    image: UIImage(systemName: "film"),
+                    state: videoEndpoint == .original ? .on : .off
+                ) { _ in
+                    self.reloadVideo(endpoint: .original)
+                },
+                UIAction(
+                    title: "Transcoded",
+                    image: UIImage(systemName: "play.rectangle"),
+                    state: videoEndpoint == .transcoded ? .on : .off
+                ) { _ in
+                    self.reloadVideo(endpoint: .transcoded)
+                },
+            ]
+        )
+    }
+
+    private func reloadVideo(endpoint: Asset.VideoEndpoint) {
+        guard endpoint != videoEndpoint else { return }
+        videoEndpoint = endpoint
+
+        let seekTime = player.currentTime()
+        player.pause()
+
+        guard loadVideo(endpoint: endpoint) else { return }
+        playerVC?.transportBarCustomMenuItems = [makeEndpointMenu()]
+
+        if seekTime.isValid && seekTime.seconds > 0 {
+            player.seek(to: seekTime, toleranceBefore: .zero, toleranceAfter: .zero) { _ in
+                self.player.play()
+            }
+        } else {
+            player.play()
         }
     }
 
     private func dismissVideoPlayer() {
+        isPlayingVideo = false
         guard let topVC = topPresentedViewController(),
             topVC is AVPlayerViewController
         else { return }
@@ -203,10 +332,12 @@ struct AssetDetailView: View {
         isPlayingVideo = false
         player.pause()
         player.replaceCurrentItem(with: nil)
+        playerVC = nil
         if let observer = endOfVideoObserver {
             NotificationCenter.default.removeObserver(observer)
             endOfVideoObserver = nil
         }
+        resetStallTracking(observe: false)
     }
 
     private func topPresentedViewController() -> UIViewController? {

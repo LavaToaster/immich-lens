@@ -158,7 +158,7 @@ struct AssetPageView: View {
         isLoadingVideo = true
         videoError = nil
 
-        guard let videoUrl = asset.videoUrl else {
+        guard let videoUrl = asset.videoUrl() else {
             videoError = NSError(
                 domain: "dev.lav.immichlens", code: 2,
                 userInfo: [NSLocalizedDescriptionKey: "Video URL not available"])
