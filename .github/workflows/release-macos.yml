@@ -10,6 +10,10 @@ on:
         description: 'Marketing version (e.g. 1.2.0). Defaults to tag or project setting.'
         required: false
         type: string
+      release_tag:
+        description: 'Existing tag to attach the release to. If empty, no release is created on manual runs.'
+        required: false
+        type: string
 
 jobs:
   release-macos:
@@ -34,6 +38,7 @@ jobs:
         id: version
         env:
           INPUT_VERSION: ${{ inputs.version }}
+          RELEASE_TAG: ${{ inputs.release_tag }}
         run: |
           BUILD_NUMBER=$(git rev-list --count HEAD)
           echo "build_number=$BUILD_NUMBER" >> "$GITHUB_OUTPUT"
@@ -41,6 +46,9 @@ jobs:
           if [[ -n "$INPUT_VERSION" ]]; then
             VERSION="$INPUT_VERSION"
             VERSION="${VERSION#v}"
+            VERSION="${VERSION%%-*}"
+          elif [[ -n "$RELEASE_TAG" ]]; then
+            VERSION="${RELEASE_TAG#v}"
             VERSION="${VERSION%%-*}"
           elif [[ "$GITHUB_REF" == refs/tags/v* ]]; then
             VERSION="${GITHUB_REF#refs/tags/v}"
@@ -158,8 +166,9 @@ jobs:
           xcrun stapler staple "$DMG_PATH"
 
       - name: Upload DMG to GitHub Release
-        if: startsWith(github.ref, 'refs/tags/')
+        if: startsWith(github.ref, 'refs/tags/') || inputs.release_tag != ''
         uses: softprops/action-gh-release@v2
         with:
+          tag_name: ${{ inputs.release_tag || github.ref_name }}
           files: ${{ steps.dmg.outputs.dmg_path }}
           generate_release_notes: true
