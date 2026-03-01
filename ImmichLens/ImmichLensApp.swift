@@ -15,6 +15,7 @@ import os
 struct ImmichLensApp: App {
     @State var selection: RootTabs = .photos
     @State private var apiService = APIService()
+    @State private var accountStore = AccountStore()
     @State private var prefetchService: ThumbnailPrefetchService?
 
     var body: some Scene {
@@ -29,31 +30,30 @@ struct ImmichLensApp: App {
                 }
             }
             .environment(apiService)
+            .environment(accountStore)
             .task {
-                await apiService.initialise()
+                await accountStore.initialise(apiService: apiService)
             }
             .onChange(of: apiService.token) { _, token in
+                // Always clear cached images when the token changes (account switch)
+                (ImagePipeline.shared.configuration.dataCache as? DataCache)?.removeAll()
+                prefetchService?.stopPrefetching()
+                prefetchService = nil
+
                 if let token {
                     let config = URLSessionConfiguration.default
-                    config.httpAdditionalHeaders = ["x-api-key": token]
+                    config.httpAdditionalHeaders = ["Authorization": "Bearer \(token)"]
                     let dataCache = Self.createDataCache()
                     ImagePipeline.shared = ImagePipeline {
                         $0.dataLoader = DataLoader(configuration: config)
                         $0.dataCache = dataCache
                     }
-                } else {
-                    (ImagePipeline.shared.configuration.dataCache as? DataCache)?.removeAll()
-                    ImagePipeline.shared = ImagePipeline()
-                }
-            }
-            .onChange(of: apiService.isAuthenticated) { _, authenticated in
-                if authenticated {
+
                     let service = ThumbnailPrefetchService(apiService: apiService)
                     prefetchService = service
                     service.startPrefetching()
                 } else {
-                    prefetchService?.stopPrefetching()
-                    prefetchService = nil
+                    ImagePipeline.shared = ImagePipeline()
                     selection = .photos
                 }
             }

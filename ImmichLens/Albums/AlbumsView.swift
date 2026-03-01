@@ -32,8 +32,11 @@ struct AlbumsView: View {
         .refreshNavigationOnTabSwitch(tab: .library(.albums)) {
             navigationPath = NavigationPath()
         }
-        .task {
+        .task(id: apiService.token) {
             await loadAlbums()
+        }
+        .onChange(of: apiService.token) {
+            navigationPath = NavigationPath()
         }
     }
 
@@ -76,6 +79,8 @@ struct AlbumsView: View {
             return
         }
 
+        albums = []
+        isLoading = true
         defer { isLoading = false }
 
         do {
@@ -87,6 +92,7 @@ struct AlbumsView: View {
                 .filter { $0.assetCount > 0 }
                 .sorted { $0.name.localizedCaseInsensitiveCompare($1.name) == .orderedAscending }
         } catch {
+            guard !Task.isCancelled else { return }
             logger.error("Failed to fetch albums: \(error.localizedDescription)")
         }
     }

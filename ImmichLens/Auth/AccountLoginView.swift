@@ -11,11 +11,13 @@ import SwiftUI
 
 struct AccountLoginView: View {
   @Environment(APIService.self) private var apiService
+  @Environment(AccountStore.self) private var accountStore
   @State private var email: String = ""
   @State private var password: String = ""
   @State private var errorMessage: String? = nil
 
   var serverUrl: String
+  var onLoginComplete: (() -> Void)?
 
   @FocusState private var focusedField: FocusField?
 
@@ -129,7 +131,10 @@ struct AccountLoginView: View {
     errorMessage = nil
 
     do {
-      _ = try await apiService.login(serverUrl: serverUrl, email: email, password: password)
+      let token = try await apiService.login(
+        serverUrl: serverUrl, email: email, password: password)
+      try accountStore.addAccount(serverUrl: serverUrl, email: email, token: token)
+      onLoginComplete?()
     } catch {
       logger.error("Login failed: \(error.localizedDescription)")
       errorMessage = "Login failed: \(error.localizedDescription)"
@@ -143,4 +148,5 @@ struct AccountLoginView: View {
     serverUrl: "https://photos.example.com"
   )
   .environment(APIService())
+  .environment(AccountStore())
 }

@@ -30,8 +30,9 @@ extension APIKeyMiddleware: ClientMiddleware {
     next: (HTTPRequest, HTTPBody?, URL) async throws -> (HTTPResponse, HTTPBody?)
   ) async throws -> (HTTPResponse, HTTPBody?) {
     var request = request
-    // Add the x-api-key header field with the provided key
-    request.headerFields[.init("x-api-key")!] = apiKey
+    request.headerFields[.authorization] = "Bearer \(apiKey)"
+    let keyPrefix = String(apiKey.prefix(8))
+    logger.info("API \(operationID): key=\(keyPrefix)...")
     return try await next(request, body, baseURL)
   }
 }

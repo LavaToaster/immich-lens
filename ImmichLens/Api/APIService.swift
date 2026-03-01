@@ -21,6 +21,7 @@ class APIService {
   private(set) var serverUrl: String?
   private(set) var token: String?
 
+  /// Test-mode initialisation only (env var bypass)
   public func initialise() async {
     defer { self.isReady = true }
 
@@ -35,47 +36,54 @@ class APIService {
       self.isAuthenticated = true
       return
     }
+  }
 
-    // In test runner mode, skip keychain so the login UI is always shown
-    let isTestRunner = ProcessInfo.processInfo.environment["IMMICH_TEST_EMAIL"] != nil
+  /// Activate a connection with the given credentials. Returns true if the token is valid.
+  func activate(serverUrl: String, token: String) async -> Bool {
+    guard let url = URL(string: serverUrl) else { return false }
 
-    if !isTestRunner,
-      let token = KeychainManager.shared.get(forKey: "immich_token"),
-      let serverUrl = KeychainManager.shared.get(forKey: "immich_server_url"),
-      let url = URL(string: serverUrl)
-    {
-      self.serverUrl = serverUrl
-      self.client = createClient(url: url, token: token)
-      self.token = token
-      do {
-        let response = try await self.client?.validateAccessToken()
-        let authStatus = try response?.ok.body.json.authStatus ?? false
-        if !authStatus {
-          throw ApiError.notAuthenticated
-        }
-      } catch {
-        // Handle token validation error
-        logger.error("Token validation failed: \(error.localizedDescription)")
-        self.logout()
-        return
+    logger.info("APIService.activate: serverUrl=\(serverUrl)")
+
+    self.serverUrl = serverUrl
+    self.client = createClient(url: url, token: token)
+    self.token = token
+
+    do {
+      guard let client = self.client else {
+        throw ApiError.notAuthenticated
+      }
+      let response = try await client.validateAccessToken()
+      let authStatus = try response.ok.body.json.authStatus
+      if !authStatus {
+        throw ApiError.notAuthenticated
       }
       self.isAuthenticated = true
+      return true
+    } catch {
+      logger.error("Token validation failed: \(error.localizedDescription)")
+      self.deactivate()
+      return false
     }
   }
 
   func createClient(url: URL, token: String) -> Client {
+    let sessionConfig = URLSessionConfiguration.default
+    sessionConfig.requestCachePolicy = .reloadIgnoringLocalCacheData
+    sessionConfig.urlCache = nil
+    // Disable cookies so a stale session cookie from another account
+    // cannot override the Authorization header identity.
+    sessionConfig.httpCookieStorage = nil
     return Client(
       serverURL: url,
       configuration: .init(
         dateTranscoder: ComplainLessTranscoder(),
-        //                dateTranscoder: .iso8601WithFractionalSeconds,
       ),
-
-      transport: URLSessionTransport(),
+      transport: URLSessionTransport(configuration: .init(session: URLSession(configuration: sessionConfig))),
       middlewares: [APIKeyMiddleware(apiKey: token)],
     )
   }
 
+  /// Authenticate with email/password. Returns the access token. Does NOT persist credentials.
   func login(serverUrl: String, email: String, password: String) async throws -> String {
     self.isLoading = true
     defer {
@@ -86,10 +94,13 @@ class APIService {
       throw URLError(.badURL)
     }
 
-    // Create a temporary client for login without auth middleware
+    // Create a temporary client for login without auth middleware.
+    // Cookies are disabled — the access token in the response body is all we need.
+    let loginConfig = URLSessionConfiguration.default
+    loginConfig.httpCookieStorage = nil
     let tempClient = Client(
       serverURL: url,
-      transport: URLSessionTransport()
+      transport: URLSessionTransport(configuration: .init(session: URLSession(configuration: loginConfig)))
     )
 
     let response = try await tempClient.login(
@@ -97,11 +108,7 @@ class APIService {
     let body = try response.created.body.json
     let token = body.accessToken
 
-    // Store credentials in keychain
-    try KeychainManager.shared.save(token, forKey: "immich_token")
-    try KeychainManager.shared.save(serverUrl, forKey: "immich_server_url")
-
-    // Update client with authentication
+    // Set up the authenticated client
     self.serverUrl = serverUrl
     self.client = createClient(url: url, token: token)
     self.isAuthenticated = true
@@ -110,12 +117,8 @@ class APIService {
     return token
   }
 
-  func logout() {
-    // Clear keychain data
-    KeychainManager.shared.delete(forKey: "immich_token")
-    KeychainManager.shared.delete(forKey: "immich_server_url")
-
-    // Reset state
+  /// Clear all active connection state. Does NOT touch Keychain.
+  func deactivate() {
     self.client = nil
     self.serverUrl = nil
     self.isAuthenticated = false

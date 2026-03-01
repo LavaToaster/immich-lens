@@ -12,6 +12,7 @@ struct FavouritesSource: AssetSource {
 }
 
 struct FavouritesView: View {
+    @Environment(APIService.self) private var apiService
     @State private var navigationPath = NavigationPath()
 
     var body: some View {
@@ -19,6 +20,9 @@ struct FavouritesView: View {
             AssetCollectionView(source: FavouritesSource())
         }
         .refreshNavigationOnTabSwitch(tab: .library(.favourites)) {
+            navigationPath = NavigationPath()
+        }
+        .onChange(of: apiService.token) {
             navigationPath = NavigationPath()
         }
     }

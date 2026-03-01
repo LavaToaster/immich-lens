@@ -90,7 +90,7 @@ struct AssetCollectionView<Source: AssetSource>: View {
             #else
             .toolbar(.hidden, for: .navigationBar)
             #endif
-            .task {
+            .task(id: apiService.token) {
                 await load()
             }
     }
@@ -133,14 +133,18 @@ struct AssetCollectionView<Source: AssetSource>: View {
             return
         }
 
+        let tokenPrefix = String(apiService.token?.prefix(8) ?? "nil")
+        logger.info("AssetCollectionView.load: token=\(tokenPrefix)... serverUrl=\(serverUrl)")
+
+        assets = []
+        isLoading = true
         defer { isLoading = false }
 
         do {
             let loaded = try await source.loadAssets(client: client, serverUrl: serverUrl)
             self.assets = loaded
-        } catch is CancellationError {
-            // Expected when the view is destroyed (e.g. tab switch)
         } catch {
+            guard !Task.isCancelled else { return }
             logger.error("Failed to load assets: \(error.localizedDescription)")
         }
     }

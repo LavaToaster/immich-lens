@@ -22,5 +22,8 @@ struct PhotosView: View {
         .refreshNavigationOnTabSwitch(tab: .photos) {
             navigationPath = NavigationPath()
         }
+        .onChange(of: apiService.token) {
+            navigationPath = NavigationPath()
+        }
     }
 }
