@@ -207,13 +207,13 @@ struct AssetDetailView: View {
                     guard self.stallTimer == nil else { return }
                     self.stallCount += 1
                     logger.warning("Video stall #\(self.stallCount)")
-                    self.stallTimer = Timer.scheduledTimer(withTimeInterval: 1, repeats: true) { _ in
-                        Task { @MainActor in
-                            self.stallCount += 1
-                            logger.warning("Video stalling: \(self.stallCount) stall count")
-                            self.checkStallAlert()
-                        }
+                    let timer = Timer(timeInterval: 1, repeats: true) { _ in
+                        self.stallCount += 1
+                        logger.warning("Video stalling: \(self.stallCount) stall count")
+                        self.checkStallAlert()
                     }
+                    RunLoop.main.add(timer, forMode: .common)
+                    self.stallTimer = timer
                 } else {
                     self.stallTimer?.invalidate()
                     self.stallTimer = nil
@@ -240,7 +240,7 @@ struct AssetDetailView: View {
     }
 
     private func checkStallAlert() {
-        guard stallCount >= 10 else { return }
+        guard stallCount >= 10, !stallAlertShown else { return }
 
         let item = player.currentItem
         let event = item?.accessLog()?.events.last
@@ -338,6 +338,7 @@ struct AssetDetailView: View {
             endOfVideoObserver = nil
         }
         resetStallTracking(observe: false)
+        videoEndpoint = .transcoded
     }
 
     private func topPresentedViewController() -> UIViewController? {

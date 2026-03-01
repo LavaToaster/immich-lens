@@ -127,8 +127,6 @@ struct Asset: Codable, Hashable, Identifiable {
         )
     }
 
-
-
     // MARK: - Display helpers
 
     /// Location string for the title bar (e.g. "London" or "London, United Kingdom")
