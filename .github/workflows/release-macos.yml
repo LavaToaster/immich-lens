@@ -74,8 +74,7 @@ jobs:
             -skipPackagePluginValidation \
             MARKETING_VERSION="$MARKETING_VERSION" \
             CURRENT_PROJECT_VERSION="$BUILD_NUMBER" \
-            CODE_SIGN_STYLE=Manual \
-            CODE_SIGN_IDENTITY="Developer ID Application" 2>&1 | xcbeautify
+            CODE_SIGNING_ALLOWED=NO 2>&1 | xcbeautify
 
       - name: Generate ExportOptions.plist
         run: |
@@ -86,6 +85,10 @@ jobs:
           <dict>
               <key>method</key>
               <string>developer-id</string>
+              <key>signingStyle</key>
+              <string>automatic</string>
+              <key>signingCertificate</key>
+              <string>Developer ID Application</string>
               <key>teamID</key>
               <string>PV3AE7C4X7</string>
           </dict>
