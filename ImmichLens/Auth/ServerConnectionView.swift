@@ -10,6 +10,8 @@ import OpenAPIURLSession
 import SwiftUI
 
 struct ServerConnectionView: View {
+  var onLoginComplete: (() -> Void)?
+
   @State private var isLoading: Bool = false
   @State private var serverUrl: String = ""
   @State private var errorMessage: String? = nil
@@ -102,7 +104,7 @@ struct ServerConnectionView: View {
         }
       }
       .navigationDestination(isPresented: $shouldNavigateToLogin) {
-        AccountLoginView(serverUrl: serverUrl + "/api")
+        AccountLoginView(serverUrl: serverUrl + "/api", onLoginComplete: onLoginComplete)
       }
     }
   }
@@ -119,9 +121,11 @@ struct ServerConnectionView: View {
       return
     }
 
+    let pingConfig = URLSessionConfiguration.default
+    pingConfig.httpCookieStorage = nil
     let client = Client(
       serverURL: url,
-      transport: URLSessionTransport(),
+      transport: URLSessionTransport(configuration: .init(session: URLSession(configuration: pingConfig))),
     )
 
     do {
@@ -139,4 +143,5 @@ struct ServerConnectionView: View {
 #Preview {
   ServerConnectionView()
     .environment(APIService())
+    .environment(AccountStore())
 }

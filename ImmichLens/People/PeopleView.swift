@@ -32,8 +32,11 @@ struct PeopleView: View {
         .refreshNavigationOnTabSwitch(tab: .people) {
             navigationPath = NavigationPath()
         }
-        .task {
+        .task(id: apiService.token) {
             await loadPeople()
+        }
+        .onChange(of: apiService.token) {
+            navigationPath = NavigationPath()
         }
     }
 
@@ -77,6 +80,8 @@ struct PeopleView: View {
             return
         }
 
+        people = []
+        isLoading = true
         defer { isLoading = false }
 
         do {
@@ -86,6 +91,7 @@ struct PeopleView: View {
             self.people = dto.people
                 .map { Person(from: $0, serverUrl: serverUrl) }
         } catch {
+            guard !Task.isCancelled else { return }
             logger.error("Failed to fetch people: \(error.localizedDescription)")
         }
     }

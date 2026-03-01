@@ -24,7 +24,7 @@ struct ExploreView: View {
                 #endif
         }
         .refreshNavigationOnTabSwitch(tab: .explore)
-        .task {
+        .task(id: apiService.token) {
             await loadData()
         }
     }
@@ -135,6 +135,9 @@ struct ExploreView: View {
             return
         }
 
+        people = []
+        places = []
+        isLoading = true
         defer { isLoading = false }
 
         await withTaskGroup(of: Void.self) { group in
@@ -147,6 +150,7 @@ struct ExploreView: View {
                         .filter { !$0.name.isEmpty }
                     await MainActor.run { self.people = loaded }
                 } catch {
+                    guard !Task.isCancelled else { return }
                     logger.error("Failed to fetch people: \(error.localizedDescription)")
                 }
             }
@@ -160,6 +164,7 @@ struct ExploreView: View {
                         .filter { $0.city != "Unknown" }
                     await MainActor.run { self.places = loaded }
                 } catch {
+                    guard !Task.isCancelled else { return }
                     logger.error("Failed to fetch places: \(error.localizedDescription)")
                 }
             }

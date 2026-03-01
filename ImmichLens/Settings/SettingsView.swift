@@ -2,6 +2,9 @@ import SwiftUI
 
 struct SettingsView: View {
     @Environment(APIService.self) private var apiService
+    @Environment(AccountStore.self) private var accountStore
+    @State private var showingAddAccount = false
+    @State private var accountToRemove: SavedAccount?
 
     var body: some View {
         #if os(macOS)
@@ -14,37 +17,79 @@ struct SettingsView: View {
     // MARK: - macOS
 
     #if os(macOS)
-        @State private var showingLogoutConfirmation = false
-
         private var macOSSettings: some View {
             Form {
-                Section("Server") {
-                    LabeledContent("URL") {
-                        Text(displayServerUrl)
-                            .textSelection(.enabled)
-                    }
-                }
-
-                Section {
-                    Button("Log Out", role: .destructive) {
-                        showingLogoutConfirmation = true
-                    }
-                }
-
-                Section {
-                    LabeledContent("Version") {
-                        Text(appVersion)
-                    }
-                }
+                accountsSection
+                versionSection
             }
             .formStyle(.grouped)
             .navigationTitle("Settings")
-            .confirmationDialog("Log out?", isPresented: $showingLogoutConfirmation) {
-                Button("Log Out", role: .destructive) {
-                    apiService.logout()
-                }
+            .sheet(isPresented: $showingAddAccount) {
+                ServerConnectionView(onLoginComplete: { showingAddAccount = false })
+                    .frame(minWidth: 500, minHeight: 400)
+            }
+            .confirmationDialog(
+                "Remove account?",
+                isPresented: removeDialogBinding
+            ) {
+                removeDialogActions
             } message: {
-                Text("You will need to sign in again to access your photos.")
+                removeDialogMessage
+            }
+        }
+
+        private var accountsSection: some View {
+            Section("Accounts") {
+                ForEach(accountStore.accountsByServer, id: \.server) { group in
+                    ForEach(group.accounts) { account in
+                        accountRow(account)
+                    }
+                }
+
+                Button("Add Account...") {
+                    showingAddAccount = true
+                }
+            }
+        }
+
+        private func accountRow(_ account: SavedAccount) -> some View {
+            HStack {
+                VStack(alignment: .leading, spacing: 2) {
+                    Text(account.email)
+                    Text(account.displayServerUrl)
+                        .font(.caption)
+                        .foregroundStyle(.secondary)
+                }
+
+                Spacer()
+
+                if account.id == accountStore.activeAccountId {
+                    Image(systemName: "checkmark.circle.fill")
+                        .foregroundStyle(.tint)
+                } else {
+                    Button("Switch") {
+                        Task {
+                            await accountStore.activate(
+                                account: account, apiService: apiService)
+                        }
+                    }
+                    .buttonStyle(.borderless)
+                }
+
+                Button(role: .destructive) {
+                    accountToRemove = account
+                } label: {
+                    Image(systemName: "trash")
+                }
+                .buttonStyle(.borderless)
+            }
+        }
+
+        private var versionSection: some View {
+            Section {
+                LabeledContent("Version") {
+                    Text(appVersion)
+                }
             }
         }
     #endif
@@ -53,49 +98,123 @@ struct SettingsView: View {
 
     #if os(tvOS)
         private var tvOSSettings: some View {
-            VStack(spacing: 40) {
-                Spacer()
-
-                Text("Settings")
-                    .font(.title)
-                    .bold()
-
-                VStack(spacing: 12) {
-                    Text("Connected to")
-                        .font(.headline)
-                        .foregroundStyle(.secondary)
-                    Text(displayServerUrl)
-                        .font(.body)
+            ScrollView {
+                VStack(alignment: .leading, spacing: 48) {
+                    tvOSAccountsSection
+                    tvOSActionsSection
+                    tvOSAboutSection
                 }
+                .padding(48)
+            }
+            .sheet(isPresented: $showingAddAccount) {
+                ServerConnectionView(onLoginComplete: { showingAddAccount = false })
+            }
+            .confirmationDialog(
+                "Remove account?",
+                isPresented: removeDialogBinding
+            ) {
+                removeDialogActions
+            } message: {
+                removeDialogMessage
+            }
+        }
 
-                Button("Log Out") {
-                    apiService.logout()
-                }
-                .buttonStyle(.borderedProminent)
-                .tint(.red)
-
-                Text("Version \(appVersion)")
-                    .font(.caption)
+        private var tvOSAccountsSection: some View {
+            VStack(alignment: .leading, spacing: 16) {
+                Text("Accounts")
+                    .font(.headline)
                     .foregroundStyle(.secondary)
 
-                Spacer()
+                ForEach(accountStore.accounts) { account in
+                    let isActive = account.id == accountStore.activeAccountId
+                    HStack(spacing: 24) {
+                        Button {
+                            guard !isActive else { return }
+                            Task {
+                                await accountStore.activate(
+                                    account: account, apiService: apiService)
+                            }
+                        } label: {
+                            HStack {
+                                VStack(alignment: .leading, spacing: 4) {
+                                    Text(account.email)
+                                        .font(.body)
+                                    Text(account.displayServerUrl)
+                                        .font(.caption)
+                                        .foregroundStyle(.secondary)
+                                }
+                                Spacer()
+                                if isActive {
+                                    Image(systemName: "checkmark")
+                                        .foregroundStyle(.tint)
+                                }
+                            }
+                        }
+                        .frame(maxWidth: .infinity)
+
+                        Button {
+                            accountToRemove = account
+                        } label: {
+                            Image(systemName: "trash")
+                                .frame(maxHeight: .infinity)
+                        }
+                        .frame(width: 80)
+                    }
+                }
+            }
+        }
+
+        private var tvOSActionsSection: some View {
+            Button {
+                showingAddAccount = true
+            } label: {
+                Label("Add Account", systemImage: "plus.circle")
+                    .padding(.vertical, 8)
+            }
+        }
+
+        private var tvOSAboutSection: some View {
+            VStack(alignment: .leading, spacing: 16) {
+                HStack {
+                    Text("Version")
+                    Spacer()
+                    Text(appVersion)
+                        .foregroundStyle(.secondary)
+                }
             }
         }
     #endif
 
-    // MARK: - Helpers
+    // MARK: - Shared
 
-    private var displayServerUrl: String {
-        guard let url = apiService.serverUrl else { return "Not connected" }
-        // Strip the /api suffix for display
-        if url.hasSuffix("/api") {
-            return String(url.dropLast(4))
+    private var removeDialogBinding: Binding<Bool> {
+        Binding(
+            get: { accountToRemove != nil },
+            set: { if !$0 { accountToRemove = nil } }
+        )
+    }
+
+    @ViewBuilder
+    private var removeDialogActions: some View {
+        Button("Remove", role: .destructive) {
+            if let account = accountToRemove {
+                Task {
+                    await accountStore.removeAccount(account, apiService: apiService)
+                }
+            }
         }
-        return url
+    }
+
+    @ViewBuilder
+    private var removeDialogMessage: some View {
+        if let account = accountToRemove {
+            Text("Remove \(account.email) on \(account.displayServerUrl)?")
+        }
     }
 
     private var appVersion: String {
-        let version = Bundle.main.infoDictionary?["CFBundleShortVersionString"] as? String ?? "?"
+        let version =
+            Bundle.main.infoDictionary?["CFBundleShortVersionString"] as? String ?? "?"
         let build = Bundle.main.infoDictionary?["CFBundleVersion"] as? String ?? "?"
         return "\(version) (\(build))"
     }
