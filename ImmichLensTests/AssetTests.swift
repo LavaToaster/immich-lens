@@ -44,12 +44,12 @@ final class AssetTests: XCTestCase {
 
     func testVideoUrl_forVideo() {
         let asset = makeAsset(id: "vid-1", thumbhash: "vhash", isImage: false)
-        XCTAssertEqual(asset.videoUrl?.absoluteString, "\(serverUrl)/assets/vid-1/video/playback?c=vhash")
+        XCTAssertEqual(asset.videoUrl()?.absoluteString, "\(serverUrl)/assets/vid-1/video/playback?c=vhash")
     }
 
     func testVideoUrl_forPhoto() {
         let asset = makeAsset(isImage: true)
-        XCTAssertNil(asset.videoUrl)
+        XCTAssertNil(asset.videoUrl())
     }
 
     // MARK: - createVideoAsset
