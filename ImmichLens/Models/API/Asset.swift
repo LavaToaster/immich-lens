@@ -95,16 +95,26 @@ struct Asset: Codable, Hashable, Identifiable {
             string: "\(serverUrl)/assets/\(id)/thumbnail?size=\(size.rawValue)&c=\(thumbhash)")
     }
 
-    /// URL for video playback (only valid for video assets)
-    var videoUrl: URL? {
-        guard type == .video, let thumbhash = thumbhash else { return nil }
-        return URL(string: "\(serverUrl)/assets/\(id)/video/playback?c=\(thumbhash)")
+    enum VideoEndpoint {
+        case transcoded
+        case original
+    }
+
+    /// URL for video playback at the specified endpoint
+    func videoUrl(_ endpoint: VideoEndpoint = .transcoded) -> URL? {
+        guard type == .video else { return nil }
+        switch endpoint {
+        case .transcoded:
+            guard let thumbhash = thumbhash else { return nil }
+            return URL(string: "\(serverUrl)/assets/\(id)/video/playback?c=\(thumbhash)")
+        case .original:
+            return URL(string: "\(serverUrl)/assets/\(id)/original")
+        }
     }
 
     /// Creates an AVAsset with Bearer token authentication for video playback
-    /// - Parameter token: The session token for authentication
-    func createVideoAsset(token: String?) -> AVURLAsset? {
-        guard let url = videoUrl else { return nil }
+    func createVideoAsset(token: String?, endpoint: VideoEndpoint = .transcoded) -> AVURLAsset? {
+        guard let url = videoUrl(endpoint) else { return nil }
 
         var headers: [String: String] = [:]
         if let token = token {
