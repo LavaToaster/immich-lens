@@ -32,11 +32,17 @@ done
 
 # --- Derive version ---
 if [[ -z "$VERSION" ]]; then
-  VERSION=$(sed -n 's/.*MARKETING_VERSION = \(.*\);/\1/p' "$PROJECT_DIR/ImmichLens.xcodeproj/project.pbxproj" | head -1 | tr -d ' ')
+  # Try git tag first, fall back to project setting
+  VERSION=$(git -C "$PROJECT_DIR" describe --tags --exact-match 2>/dev/null || true)
+  VERSION="${VERSION#v}"
+  if [[ -z "$VERSION" ]]; then
+    VERSION=$(sed -n 's/.*MARKETING_VERSION = \(.*\);/\1/p' "$PROJECT_DIR/ImmichLens.xcodeproj/project.pbxproj" | head -1 | tr -d ' ')
+  fi
 fi
+MARKETING_VERSION="${VERSION%%-*}"
 BUILD_NUMBER=$(git -C "$PROJECT_DIR" rev-list --count HEAD)
 
-echo "==> Version: $VERSION (build $BUILD_NUMBER)"
+echo "==> Version: $VERSION (marketing: $MARKETING_VERSION, build $BUILD_NUMBER)"
 
 # --- Clean previous build ---
 rm -rf "$ARCHIVE_PATH" "$EXPORT_PATH" "$DMG_DIR"
@@ -51,7 +57,7 @@ xcodebuild archive \
   -destination 'generic/platform=macOS' \
   -archivePath "$ARCHIVE_PATH" \
   -skipPackagePluginValidation \
-  MARKETING_VERSION="$VERSION" \
+  MARKETING_VERSION="$MARKETING_VERSION" \
   CURRENT_PROJECT_VERSION="$BUILD_NUMBER" 2>&1 | xcbeautify
 
 # --- Export ---

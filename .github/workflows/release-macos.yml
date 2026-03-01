@@ -44,22 +44,22 @@ jobs:
           echo "build_number=$BUILD_NUMBER" >> "$GITHUB_OUTPUT"
 
           if [[ -n "$INPUT_VERSION" ]]; then
-            VERSION="$INPUT_VERSION"
-            VERSION="${VERSION#v}"
-            VERSION="${VERSION%%-*}"
+            FULL_VERSION="${INPUT_VERSION#v}"
           elif [[ -n "$RELEASE_TAG" ]]; then
-            VERSION="${RELEASE_TAG#v}"
-            VERSION="${VERSION%%-*}"
+            FULL_VERSION="${RELEASE_TAG#v}"
           elif [[ "$GITHUB_REF" == refs/tags/v* ]]; then
-            VERSION="${GITHUB_REF#refs/tags/v}"
-            VERSION="${VERSION%%-*}"
+            FULL_VERSION="${GITHUB_REF#refs/tags/v}"
           else
-            VERSION=$(sed -n 's/.*MARKETING_VERSION = \(.*\);/\1/p' ImmichLens.xcodeproj/project.pbxproj | head -1 | tr -d ' ')
+            FULL_VERSION=$(sed -n 's/.*MARKETING_VERSION = \(.*\);/\1/p' ImmichLens.xcodeproj/project.pbxproj | head -1 | tr -d ' ')
           fi
 
-          echo "marketing_version=$VERSION" >> "$GITHUB_OUTPUT"
+          MARKETING_VERSION="${FULL_VERSION%%-*}"
+
+          echo "full_version=$FULL_VERSION" >> "$GITHUB_OUTPUT"
+          echo "marketing_version=$MARKETING_VERSION" >> "$GITHUB_OUTPUT"
           echo "### Version Info" >> "$GITHUB_STEP_SUMMARY"
-          echo "- **Marketing version:** $VERSION" >> "$GITHUB_STEP_SUMMARY"
+          echo "- **Version:** $FULL_VERSION" >> "$GITHUB_STEP_SUMMARY"
+          echo "- **Marketing version:** $MARKETING_VERSION" >> "$GITHUB_STEP_SUMMARY"
           echo "- **Build number:** $BUILD_NUMBER" >> "$GITHUB_STEP_SUMMARY"
 
       - name: Import code signing certificate
@@ -116,7 +116,7 @@ jobs:
       - name: Create DMG
         id: dmg
         env:
-          VERSION: ${{ steps.version.outputs.marketing_version }}
+          VERSION: ${{ steps.version.outputs.full_version }}
         run: |
           DMG_NAME="ImmichLens-${VERSION}.dmg"
           create-dmg \
