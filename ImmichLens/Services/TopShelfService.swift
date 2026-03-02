@@ -51,7 +51,7 @@ class TopShelfService {
         do {
             let dtos = try await fetchAssetDtos(client: client, settings: settings)
             guard !Task.isCancelled else { return }
-            try await cacheAssets(dtos, serverUrl: serverUrl, token: token, albumId: albumId)
+            try await Self.cacheAssets(dtos, serverUrl: serverUrl, token: token, albumId: albumId)
         } catch {
             guard !Task.isCancelled else { return }
             logger.error("TopShelf refresh failed: \(error.localizedDescription)")
@@ -78,7 +78,7 @@ class TopShelfService {
         return try response.ok.body.json
     }
 
-    private func cacheAssets(
+    private nonisolated static func cacheAssets(
         _ dtos: [Components.Schemas.AssetResponseDto], serverUrl: String, token: String, albumId: String?
     ) async throws {
         try TopShelfFileManager.ensureDirectories()
@@ -110,8 +110,8 @@ class TopShelfService {
                 guard let httpResponse = response as? HTTPURLResponse,
                       httpResponse.statusCode == 200 else { continue }
 
-                let faceCenterY = Self.extractFaceCenterY(from: dto)
-                let processed = Self.processImageForTopShelf(data, faceCenterY: faceCenterY)
+                let faceCenterY = extractFaceCenterY(from: dto)
+                let processed = processImageForTopShelf(data, faceCenterY: faceCenterY)
                 try processed.write(to: localImageURL)
             } catch {
                 logger.warning("TopShelf: failed to download image for \(asset.id): \(error.localizedDescription)")
@@ -132,12 +132,14 @@ class TopShelfService {
         }
 
         logger.info("TopShelf: cached \(items.count) items")
-        TVTopShelfContentProvider.topShelfContentDidChange()
+        await MainActor.run {
+            TVTopShelfContentProvider.topShelfContentDidChange()
+        }
     }
 
     /// Extract the average normalized face center Y from all faces in the asset.
     /// Returns nil if no faces detected, otherwise 0.0 = top, 1.0 = bottom.
-    private static func extractFaceCenterY(
+    private nonisolated static func extractFaceCenterY(
         from dto: Components.Schemas.AssetResponseDto
     ) -> Double? {
         var allCenters: [Double] = []
@@ -168,7 +170,7 @@ class TopShelfService {
 
     /// Fill 3840x2160 (4K) by scaling to cover, centering on face if available.
     /// tvOS will downscale for 1080p displays.
-    private static func processImageForTopShelf(_ data: Data, faceCenterY: Double?) -> Data {
+    private nonisolated static func processImageForTopShelf(_ data: Data, faceCenterY: Double?) -> Data {
         guard let image = UIImage(data: data) else { return data }
 
         let targetSize = CGSize(width: 3840, height: 2160)
