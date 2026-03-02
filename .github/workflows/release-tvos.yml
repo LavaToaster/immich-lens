@@ -60,30 +60,39 @@ jobs:
           p12-file-base64: ${{ secrets.APPSTORE_CERTIFICATES_FILE_BASE64 }}
           p12-password: ${{ secrets.APPSTORE_CERTIFICATES_PASSWORD }}
 
-      - name: Download app provisioning profile
-        uses: apple-actions/download-provisioning-profiles@v5
-        with:
-          bundle-id: dev.lav.ImmichLens
-          profile-type: TVOS_APP_STORE
-          issuer-id: ${{ vars.APPSTORE_ISSUER_ID }}
-          api-key-id: ${{ vars.APPSTORE_API_KEY_ID }}
-          api-private-key: ${{ secrets.APPSTORE_API_PRIVATE_KEY }}
+      - name: Set up App Store Connect API key
+        env:
+          API_KEY_ID: ${{ vars.APPSTORE_API_KEY_ID }}
+          API_PRIVATE_KEY: ${{ secrets.APPSTORE_API_PRIVATE_KEY }}
+        run: |
+          mkdir -p ~/.appstoreconnect/private_keys
+          echo "$API_PRIVATE_KEY" > ~/.appstoreconnect/private_keys/AuthKey_${API_KEY_ID}.p8
 
-      - name: Download TopShelf provisioning profile
-        uses: apple-actions/download-provisioning-profiles@v5
-        with:
-          bundle-id: dev.lav.ImmichLens.TopShelf
-          profile-type: TVOS_APP_STORE
-          issuer-id: ${{ vars.APPSTORE_ISSUER_ID }}
-          api-key-id: ${{ vars.APPSTORE_API_KEY_ID }}
-          api-private-key: ${{ secrets.APPSTORE_API_PRIVATE_KEY }}
+      - name: Archive
+        env:
+          MARKETING_VERSION: ${{ steps.version.outputs.marketing_version }}
+          BUILD_NUMBER: ${{ steps.version.outputs.build_number }}
+          API_KEY_ID: ${{ vars.APPSTORE_API_KEY_ID }}
+          API_ISSUER_ID: ${{ vars.APPSTORE_ISSUER_ID }}
+        run: |
+          set -o pipefail
+          xcodebuild archive \
+            -project ImmichLens.xcodeproj \
+            -scheme ImmichLens \
+            -destination 'generic/platform=tvOS' \
+            -archivePath "$ARCHIVE_PATH" \
+            -skipPackagePluginValidation \
+            -allowProvisioningUpdates \
+            -authenticationKeyPath ~/.appstoreconnect/private_keys/AuthKey_${API_KEY_ID}.p8 \
+            -authenticationKeyID "$API_KEY_ID" \
+            -authenticationKeyIssuerID "$API_ISSUER_ID" \
+            MARKETING_VERSION="$MARKETING_VERSION" \
+            CURRENT_PROJECT_VERSION="$BUILD_NUMBER" \
+            DEVELOPMENT_TEAM=PV3AE7C4X7 2>&1 | xcbeautify
 
       - name: Generate ExportOptions.plist
-        env:
-          PROFILE_NAME: Immich Lens tvOS
-          TOPSHELF_PROFILE_NAME: Immich Lens TopShelf tvOS
         run: |
-          cat > ExportOptions.plist << PLIST
+          cat > ExportOptions.plist << 'PLIST'
           <?xml version="1.0" encoding="UTF-8"?>
           <!DOCTYPE plist PUBLIC "-//Apple//DTD PLIST 1.0//EN" "http://www.apple.com/DTDs/PropertyList-1.0.dtd">
           <plist version="1.0">
@@ -93,54 +102,33 @@ jobs:
               <key>destination</key>
               <string>export</string>
               <key>signingStyle</key>
-              <string>manual</string>
+              <string>automatic</string>
               <key>teamID</key>
               <string>PV3AE7C4X7</string>
-              <key>provisioningProfiles</key>
-              <dict>
-                  <key>dev.lav.ImmichLens</key>
-                  <string>${PROFILE_NAME}</string>
-                  <key>dev.lav.ImmichLens.TopShelf</key>
-                  <string>${TOPSHELF_PROFILE_NAME}</string>
-              </dict>
           </dict>
           </plist>
           PLIST
 
-      - name: Archive
-        env:
-          MARKETING_VERSION: ${{ steps.version.outputs.marketing_version }}
-          BUILD_NUMBER: ${{ steps.version.outputs.build_number }}
-        run: |
-          set -o pipefail
-          xcodebuild archive \
-            -project ImmichLens.xcodeproj \
-            -scheme ImmichLens \
-            -destination 'generic/platform=tvOS' \
-            -archivePath "$ARCHIVE_PATH" \
-            -skipPackagePluginValidation \
-            MARKETING_VERSION="$MARKETING_VERSION" \
-            CURRENT_PROJECT_VERSION="$BUILD_NUMBER" \
-            CODE_SIGN_STYLE=Manual \
-            CODE_SIGN_IDENTITY="Apple Distribution" \
-            DEVELOPMENT_TEAM=PV3AE7C4X7 2>&1 | xcbeautify
-
       - name: Export archive
+        env:
+          API_KEY_ID: ${{ vars.APPSTORE_API_KEY_ID }}
+          API_ISSUER_ID: ${{ vars.APPSTORE_ISSUER_ID }}
         run: |
           set -o pipefail
           xcodebuild -exportArchive \
             -archivePath "$ARCHIVE_PATH" \
             -exportOptionsPlist ExportOptions.plist \
-            -exportPath "$EXPORT_PATH" 2>&1 | xcbeautify
+            -exportPath "$EXPORT_PATH" \
+            -allowProvisioningUpdates \
+            -authenticationKeyPath ~/.appstoreconnect/private_keys/AuthKey_${API_KEY_ID}.p8 \
+            -authenticationKeyID "$API_KEY_ID" \
+            -authenticationKeyIssuerID "$API_ISSUER_ID" 2>&1 | xcbeautify
 
       - name: Upload to TestFlight
         env:
           API_KEY_ID: ${{ vars.APPSTORE_API_KEY_ID }}
           API_ISSUER_ID: ${{ vars.APPSTORE_ISSUER_ID }}
-          API_PRIVATE_KEY: ${{ secrets.APPSTORE_API_PRIVATE_KEY }}
         run: |
-          mkdir -p ~/.appstoreconnect/private_keys
-          echo "$API_PRIVATE_KEY" > ~/.appstoreconnect/private_keys/AuthKey_${API_KEY_ID}.p8
           xcrun altool --upload-app \
             --file build/export/ImmichLens.ipa \
             --type appletvos \
