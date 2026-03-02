@@ -12,8 +12,9 @@ extension Album: AssetSource {
 
 struct AlbumAssetsView: View {
     let album: Album
+    var initialAssetId: String? = nil
 
     var body: some View {
-        AssetCollectionView(source: album)
+        AssetCollectionView(source: album, initialAssetId: initialAssetId)
     }
 }

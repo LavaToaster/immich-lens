@@ -23,8 +23,15 @@ struct AlbumsView: View {
         NavigationStack(path: $navigationPath) {
             gridContent
                 .navigationDestination(for: Album.self) { album in
+                    #if os(tvOS)
+                    let assetId = deepLinkAssetId
+                    AlbumAssetsView(album: album, initialAssetId: assetId)
+                        .environment(apiService)
+                        .onAppear { deepLinkAssetId = nil }
+                    #else
                     AlbumAssetsView(album: album)
                         .environment(apiService)
+                    #endif
                 }
                 #if os(macOS)
                 .navigationTitle("Albums")
@@ -109,6 +116,8 @@ struct AlbumsView: View {
     }
 
     #if os(tvOS)
+    @State private var deepLinkAssetId: String?
+
     private func handlePendingDeepLink() async {
         guard case .albumAsset(let albumId, let assetId) = deepLinkRouter.pending else { return }
         deepLinkRouter.pending = nil
@@ -122,15 +131,9 @@ struct AlbumsView: View {
             let albumDto = try albumResponse.ok.body.json
             let album = Album(from: albumDto, serverUrl: serverUrl)
 
-            let assetResponse = try await client.getAssetInfo(path: .init(id: assetId))
-            let assetDto = try assetResponse.ok.body.json
-            let asset = Asset(from: assetDto, serverUrl: serverUrl)
-
-            // Push album, let the view render, then push asset
+            deepLinkAssetId = assetId
             navigationPath = NavigationPath()
             navigationPath.append(album)
-            try? await Task.sleep(for: .milliseconds(500))
-            navigationPath.append(asset)
         } catch {
             logger.error("Deep link: failed to navigate to album \(albumId) asset \(assetId): \(error.localizedDescription)")
         }

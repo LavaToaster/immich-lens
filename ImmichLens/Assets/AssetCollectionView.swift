@@ -71,11 +71,13 @@ func fetchTimeBucketAssets(
 /// Shared view for displaying a grid of assets from any AssetSource.
 struct AssetCollectionView<Source: AssetSource>: View {
     let source: Source
+    var initialAssetId: String? = nil
 
     @Environment(APIService.self) private var apiService
     @State private var assets: [Asset] = []
     @State private var isLoading = true
     @State private var visibleRange: Range<Int> = 0..<0
+    @State private var initialNavigationDone = false
     @FocusState private var focusedIndex: Int?
 
     var body: some View {
@@ -93,7 +95,20 @@ struct AssetCollectionView<Source: AssetSource>: View {
             .task(id: apiService.token) {
                 await load(force: true)
             }
+            .onChange(of: isLoading) { _, loading in
+                guard !loading, !initialNavigationDone, let targetId = initialAssetId else { return }
+                initialNavigationDone = true
+                if let asset = assets.first(where: { $0.id == targetId }) {
+                    navigationToInitialAsset = asset
+                }
+            }
+            .navigationDestination(item: $navigationToInitialAsset) { asset in
+                AssetDetailView(assets: assets, initialAsset: asset)
+                    .environment(apiService)
+            }
     }
+
+    @State private var navigationToInitialAsset: Asset?
 
     private var gridContent: some View {
         ZStack {

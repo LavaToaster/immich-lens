@@ -31,8 +31,10 @@ struct PhotosView: View {
         #if os(tvOS)
         .onChange(of: deepLinkRouter.pending, initial: true) { _, link in
             guard case .asset(let assetId) = link else { return }
-            deepLinkRouter.pending = nil
-            Task { await navigateToAsset(id: assetId) }
+            Task {
+                await navigateToAsset(id: assetId)
+                deepLinkRouter.pending = nil
+            }
         }
         #endif
     }

@@ -368,12 +368,6 @@ struct SettingsView: View {
             NotificationCenter.default.post(name: .topShelfSettingsChanged, object: nil)
         }
 
-        private var currentTopShelfSelection: TopShelfSourceSelection {
-            if !topShelfEnabled { return .disabled }
-            if topShelfSourceMode == .album, let id = topShelfAlbumId { return .album(id) }
-            return .everything
-        }
-
         private func loadAlbumsForTopShelf() async {
             guard let client = apiService.client, let serverUrl = apiService.serverUrl else { return }
             isLoadingAlbums = true
