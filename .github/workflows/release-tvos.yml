@@ -60,7 +60,7 @@ jobs:
           p12-file-base64: ${{ secrets.APPSTORE_CERTIFICATES_FILE_BASE64 }}
           p12-password: ${{ secrets.APPSTORE_CERTIFICATES_PASSWORD }}
 
-      - name: Download provisioning profile
+      - name: Download app provisioning profile
         uses: apple-actions/download-provisioning-profiles@v5
         with:
           bundle-id: dev.lav.ImmichLens
@@ -69,9 +69,19 @@ jobs:
           api-key-id: ${{ vars.APPSTORE_API_KEY_ID }}
           api-private-key: ${{ secrets.APPSTORE_API_PRIVATE_KEY }}
 
+      - name: Download TopShelf provisioning profile
+        uses: apple-actions/download-provisioning-profiles@v5
+        with:
+          bundle-id: dev.lav.ImmichLens.TopShelf
+          profile-type: TVOS_APP_STORE
+          issuer-id: ${{ vars.APPSTORE_ISSUER_ID }}
+          api-key-id: ${{ vars.APPSTORE_API_KEY_ID }}
+          api-private-key: ${{ secrets.APPSTORE_API_PRIVATE_KEY }}
+
       - name: Generate ExportOptions.plist
         env:
           PROFILE_NAME: Immich Lens tvOS
+          TOPSHELF_PROFILE_NAME: Immich Lens TopShelf tvOS
         run: |
           cat > ExportOptions.plist << PLIST
           <?xml version="1.0" encoding="UTF-8"?>
@@ -91,7 +101,7 @@ jobs:
                   <key>dev.lav.ImmichLens</key>
                   <string>${PROFILE_NAME}</string>
                   <key>dev.lav.ImmichLens.TopShelf</key>
-                  <string>${PROFILE_NAME}</string>
+                  <string>${TOPSHELF_PROFILE_NAME}</string>
               </dict>
           </dict>
           </plist>
