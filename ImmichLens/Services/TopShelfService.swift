@@ -65,12 +65,12 @@ class TopShelfService {
 
         switch settings.sourceMode {
         case .everything:
-            body = .init(size: 5, _type: .init(value1: .image))
+            body = .init(size: 5, _type: .init(value1: .image), withPeople: true)
         case .album:
             if let albumId = settings.selectedAlbumId {
-                body = .init(albumIds: [albumId], size: 5, _type: .init(value1: .image))
+                body = .init(albumIds: [albumId], size: 5, _type: .init(value1: .image), withPeople: true)
             } else {
-                body = .init(size: 5, _type: .init(value1: .image))
+                body = .init(size: 5, _type: .init(value1: .image), withPeople: true)
             }
         }
 
