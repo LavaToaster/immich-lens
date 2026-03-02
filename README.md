@@ -18,6 +18,19 @@
 
 ---
 
+> [!IMPORTANT]
+> ImmichLens is an independent project and is not affiliated with or endorsed by the Immich team.
+
+## Goal
+
+ImmichLens is not a full Immich client — it's a lens into your library. The focus is on providing a native, Apple-like viewing experience rather than 1-to-1 feature parity.
+
+## Install
+
+**Apple TV (tvOS)** — Install via [TestFlight](https://testflight.apple.com/join/azBvZQCs). Open the link on your iPhone or iPad signed into the same Apple Account as your Apple TV, then accept the invite — the app will appear on your Apple TV automatically.
+
+**macOS** — Download the latest `.dmg` from [GitHub Releases](https://github.com/LavaToaster/immich-lens/releases).
+
 ## Screenshots
 
 <p align="center">
