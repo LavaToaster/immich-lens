@@ -10,6 +10,7 @@
 </p>
 
 <p align="center">
+  <a href="https://testflight.apple.com/join/azBvZQCs"><img src="https://img.shields.io/badge/TestFlight-Join%20Beta-0D96F6?logo=apple&logoColor=white" alt="Join TestFlight Beta"></a>
   <img src="https://img.shields.io/badge/platform-macOS%2026.0%2B-blue" alt="macOS 26.0+">
   <img src="https://img.shields.io/badge/platform-tvOS%2026.0%2B-black" alt="tvOS 26.0+">
   <img src="https://img.shields.io/badge/Swift-SwiftUI-orange" alt="SwiftUI">
