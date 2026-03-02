@@ -14,6 +14,9 @@ struct TimelineSource: AssetSource {
 struct PhotosView: View {
     @Environment(APIService.self) private var apiService
     @State private var navigationPath = NavigationPath()
+    #if os(tvOS)
+    @Environment(DeepLinkRouter.self) private var deepLinkRouter
+    #endif
 
     var body: some View {
         NavigationStack(path: $navigationPath) {
@@ -25,5 +28,27 @@ struct PhotosView: View {
         .onChange(of: apiService.token) {
             navigationPath = NavigationPath()
         }
+        #if os(tvOS)
+        .onChange(of: deepLinkRouter.pending, initial: true) { _, link in
+            guard case .asset(let assetId) = link else { return }
+            deepLinkRouter.pending = nil
+            Task { await navigateToAsset(id: assetId) }
+        }
+        #endif
     }
+
+    #if os(tvOS)
+    private func navigateToAsset(id: String) async {
+        guard let client = apiService.client, let serverUrl = apiService.serverUrl else { return }
+        do {
+            let response = try await client.getAssetInfo(path: .init(id: id))
+            let dto = try response.ok.body.json
+            let asset = Asset(from: dto, serverUrl: serverUrl)
+            navigationPath = NavigationPath()
+            navigationPath.append(asset)
+        } catch {
+            logger.error("Deep link: failed to fetch asset \(id): \(error.localizedDescription)")
+        }
+    }
+    #endif
 }

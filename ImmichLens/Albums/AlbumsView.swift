@@ -10,6 +10,7 @@ struct AlbumsView: View {
     #if os(tvOS)
     private let columns = Array(repeating: GridItem(.flexible(), spacing: 40), count: 4)
     private let spacing: CGFloat = 40
+    @Environment(DeepLinkRouter.self) private var deepLinkRouter
     #else
     private let columns = [GridItem(.adaptive(minimum: 160, maximum: 240), spacing: 16)]
     private let spacing: CGFloat = 16
@@ -34,10 +35,20 @@ struct AlbumsView: View {
         }
         .task(id: apiService.token) {
             await loadAlbums()
+            #if os(tvOS)
+            await handlePendingDeepLink()
+            #endif
         }
         .onChange(of: apiService.token) {
             navigationPath = NavigationPath()
         }
+        #if os(tvOS)
+        .onChange(of: deepLinkRouter.pending) { _, link in
+            guard !isLoading else { return }
+            guard case .albumAsset = link else { return }
+            Task { await handlePendingDeepLink() }
+        }
+        #endif
     }
 
     private var gridContent: some View {
@@ -96,6 +107,35 @@ struct AlbumsView: View {
             logger.error("Failed to fetch albums: \(error.localizedDescription)")
         }
     }
+
+    #if os(tvOS)
+    private func handlePendingDeepLink() async {
+        guard case .albumAsset(let albumId, let assetId) = deepLinkRouter.pending else { return }
+        deepLinkRouter.pending = nil
+        await navigateToAlbumAsset(albumId: albumId, assetId: assetId)
+    }
+
+    private func navigateToAlbumAsset(albumId: String, assetId: String) async {
+        guard let client = apiService.client, let serverUrl = apiService.serverUrl else { return }
+        do {
+            let albumResponse = try await client.getAlbumInfo(path: .init(id: albumId))
+            let albumDto = try albumResponse.ok.body.json
+            let album = Album(from: albumDto, serverUrl: serverUrl)
+
+            let assetResponse = try await client.getAssetInfo(path: .init(id: assetId))
+            let assetDto = try assetResponse.ok.body.json
+            let asset = Asset(from: assetDto, serverUrl: serverUrl)
+
+            // Push album, let the view render, then push asset
+            navigationPath = NavigationPath()
+            navigationPath.append(album)
+            try? await Task.sleep(for: .milliseconds(500))
+            navigationPath.append(asset)
+        } catch {
+            logger.error("Deep link: failed to navigate to album \(albumId) asset \(assetId): \(error.localizedDescription)")
+        }
+    }
+    #endif
 }
 
 private struct AlbumCell: View {

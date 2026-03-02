@@ -31,8 +31,7 @@ extension APIKeyMiddleware: ClientMiddleware {
   ) async throws -> (HTTPResponse, HTTPBody?) {
     var request = request
     request.headerFields[.authorization] = "Bearer \(apiKey)"
-    let keyPrefix = String(apiKey.prefix(8))
-    logger.info("API \(operationID): key=\(keyPrefix)...")
+    logger.info("API \(operationID)")
     return try await next(request, body, baseURL)
   }
 }

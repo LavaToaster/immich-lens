@@ -91,7 +91,7 @@ struct AssetCollectionView<Source: AssetSource>: View {
             .toolbar(.hidden, for: .navigationBar)
             #endif
             .task(id: apiService.token) {
-                await load()
+                await load(force: true)
             }
     }
 
@@ -126,18 +126,15 @@ struct AssetCollectionView<Source: AssetSource>: View {
         }
     }
 
-    private func load() async {
+    private func load(force: Bool = false) async {
         guard let client = apiService.client, let serverUrl = apiService.serverUrl else {
-            logger.error("API client or server URL not available")
             isLoading = false
             return
         }
 
-        let tokenPrefix = String(apiService.token?.prefix(8) ?? "nil")
-        logger.info("AssetCollectionView.load: token=\(tokenPrefix)... serverUrl=\(serverUrl)")
+        guard force || assets.isEmpty else { return }
 
-        assets = []
-        isLoading = true
+        isLoading = assets.isEmpty
         defer { isLoading = false }
 
         do {
