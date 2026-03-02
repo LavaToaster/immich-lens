@@ -71,11 +71,13 @@ func fetchTimeBucketAssets(
 /// Shared view for displaying a grid of assets from any AssetSource.
 struct AssetCollectionView<Source: AssetSource>: View {
     let source: Source
+    var initialAssetId: String? = nil
 
     @Environment(APIService.self) private var apiService
     @State private var assets: [Asset] = []
     @State private var isLoading = true
     @State private var visibleRange: Range<Int> = 0..<0
+    @State private var initialNavigationDone = false
     @FocusState private var focusedIndex: Int?
 
     var body: some View {
@@ -91,9 +93,22 @@ struct AssetCollectionView<Source: AssetSource>: View {
             .toolbar(.hidden, for: .navigationBar)
             #endif
             .task(id: apiService.token) {
-                await load()
+                await load(force: true)
+            }
+            .onChange(of: isLoading) { _, loading in
+                guard !loading, !initialNavigationDone, let targetId = initialAssetId else { return }
+                initialNavigationDone = true
+                if let asset = assets.first(where: { $0.id == targetId }) {
+                    navigationToInitialAsset = asset
+                }
+            }
+            .navigationDestination(item: $navigationToInitialAsset) { asset in
+                AssetDetailView(assets: assets, initialAsset: asset)
+                    .environment(apiService)
             }
     }
+
+    @State private var navigationToInitialAsset: Asset?
 
     private var gridContent: some View {
         ZStack {
@@ -126,18 +141,15 @@ struct AssetCollectionView<Source: AssetSource>: View {
         }
     }
 
-    private func load() async {
+    private func load(force: Bool = false) async {
         guard let client = apiService.client, let serverUrl = apiService.serverUrl else {
-            logger.error("API client or server URL not available")
             isLoading = false
             return
         }
 
-        let tokenPrefix = String(apiService.token?.prefix(8) ?? "nil")
-        logger.info("AssetCollectionView.load: token=\(tokenPrefix)... serverUrl=\(serverUrl)")
+        guard force || assets.isEmpty else { return }
 
-        assets = []
-        isLoading = true
+        isLoading = assets.isEmpty
         defer { isLoading = false }
 
         do {

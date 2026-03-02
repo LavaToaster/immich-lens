@@ -7,6 +7,15 @@ struct SettingsView: View {
     @State private var accountToRemove: SavedAccount?
     @State private var activatingAccountId: UUID?
 
+    #if os(tvOS)
+    @State private var topShelfEnabled: Bool = TopShelfSettings().isEnabled
+    @State private var topShelfSourceMode: TopShelfSettings.SourceMode = TopShelfSettings().sourceMode
+    @State private var topShelfAlbumId: String? = TopShelfSettings().selectedAlbumId
+    @State private var topShelfAlbums: [Album] = []
+    @State private var isLoadingAlbums = false
+    @FocusState private var focusedSection: SettingsSection?
+    #endif
+
     private var isActivating: Bool { activatingAccountId != nil }
 
     var body: some View {
@@ -108,14 +117,46 @@ struct SettingsView: View {
     // MARK: - tvOS
 
     #if os(tvOS)
+        private enum SettingsSection: Hashable {
+            case accounts
+            case topShelf
+        }
+
+        @State private var settingsDescription = ""
+        @State private var topShelfDescription = "Choose which photos appear on the Apple TV Home Screen when ImmichLens is in focus."
+        @FocusState private var focusedTopShelfItem: TopShelfSourceSelection?
+
         private var tvOSSettings: some View {
-            ScrollView {
-                VStack(alignment: .leading, spacing: 48) {
-                    tvOSAccountsSection
-                    tvOSActionsSection
-                    tvOSAboutSection
+            NavigationStack {
+                tvOSSettingsLayout(description: settingsDescription) {
+                    List {
+                        NavigationLink("Accounts", value: SettingsSection.accounts)
+                            .focused($focusedSection, equals: .accounts)
+                        NavigationLink("Top Shelf", value: SettingsSection.topShelf)
+                            .focused($focusedSection, equals: .topShelf)
+                    }
+                    .listStyle(.grouped)
                 }
-                .padding(48)
+                .onChange(of: focusedSection) { _, section in
+                    withAnimation(.easeInOut(duration: 0.2)) {
+                        switch section {
+                        case .accounts:
+                            settingsDescription = "Switch between accounts or add a new Immich server connection."
+                        case .topShelf:
+                            settingsDescription = "Choose which photos appear on the Apple TV Home Screen when ImmichLens is in focus."
+                        case nil:
+                            settingsDescription = ""
+                        }
+                    }
+                }
+                .navigationDestination(for: SettingsSection.self) { section in
+                    switch section {
+                    case .accounts:
+                        tvOSSettingsLayout(description: "Switch between accounts or add a new Immich server connection.") { tvOSAccountsDetail }
+                    case .topShelf:
+                        tvOSSettingsLayout(description: topShelfDescription) { tvOSTopShelfDetail }
+                    }
+                }
             }
             .sheet(isPresented: $showingAddAccount) {
                 ServerConnectionView(onLoginComplete: { showingAddAccount = false })
@@ -130,78 +171,221 @@ struct SettingsView: View {
             }
         }
 
-        private var tvOSAccountsSection: some View {
-            VStack(alignment: .leading, spacing: 16) {
-                Text("Accounts")
-                    .font(.headline)
-                    .foregroundStyle(.secondary)
+        private func tvOSSettingsLayout<Content: View>(description: String, @ViewBuilder content: () -> Content) -> some View {
+            HStack(spacing: 0) {
+                ZStack {
+                    // Logo + name pinned to center, ignoring description height
+                    VStack(spacing: 0) {
+                        Image("Logo")
+                            .resizable()
+                            .aspectRatio(contentMode: .fit)
+                            .frame(width: 300, height: 300)
+                        Text("ImmichLens")
+                            .font(.title2)
+                            .foregroundStyle(.secondary)
+                            .padding(.top, 16)
+                        Text(appVersion)
+                            .font(.caption)
+                            .foregroundStyle(.tertiary)
+                    }
+                    .offset(y: -40)
 
-                ForEach(accountStore.accounts) { account in
-                    let isActive = account.id == accountStore.activeAccountId
-                    let isActivating = activatingAccountId == account.id
-                    HStack(spacing: 24) {
-                        Button {
-                            guard !isActive && !isActivating else { return }
-                            activatingAccountId = account.id
-                            Task {
-                                await accountStore.activate(
-                                    account: account, apiService: apiService)
-                                activatingAccountId = nil
+                    // Description pinned below center
+                    VStack {
+                        Spacer()
+                        Text(description)
+                            .font(.caption)
+                            .foregroundStyle(.tertiary)
+                            .multilineTextAlignment(.center)
+                            .frame(maxWidth: 400)
+                            .padding(.bottom, 80)
+                    }
+                }
+                .frame(maxWidth: .infinity)
+
+                content()
+                    .scrollClipDisabled()
+                    .frame(maxWidth: .infinity, maxHeight: .infinity, alignment: .top)
+            }
+        }
+
+        private var tvOSAccountsDetail: some View {
+            ScrollView {
+                VStack(alignment: .leading, spacing: 16) {
+                    ForEach(accountStore.accounts) { account in
+                        let isActive = account.id == accountStore.activeAccountId
+                        let isActivating = activatingAccountId == account.id
+                        HStack(spacing: 24) {
+                            Button {
+                                guard !isActive && !isActivating else { return }
+                                activatingAccountId = account.id
+                                Task {
+                                    await accountStore.activate(
+                                        account: account, apiService: apiService)
+                                    activatingAccountId = nil
+                                }
+                            } label: {
+                                HStack {
+                                    VStack(alignment: .leading, spacing: 4) {
+                                        Text(account.email)
+                                            .font(.body)
+                                        Text(account.displayServerUrl)
+                                            .font(.caption)
+                                            .foregroundStyle(.secondary)
+                                    }
+                                    Spacer()
+                                    if isActivating {
+                                        ProgressView()
+                                    } else if isActive {
+                                        Image(systemName: "checkmark")
+                                            .foregroundStyle(.tint)
+                                    }
+                                }
                             }
-                        } label: {
-                            HStack {
-                                VStack(alignment: .leading, spacing: 4) {
-                                    Text(account.email)
-                                        .font(.body)
-                                    Text(account.displayServerUrl)
-                                        .font(.caption)
-                                        .foregroundStyle(.secondary)
-                                }
-                                Spacer()
-                                if isActivating {
-                                    ProgressView()
-                                } else if isActive {
-                                    Image(systemName: "checkmark")
-                                        .foregroundStyle(.tint)
-                                }
+                            .disabled(isActivating)
+                            .frame(maxWidth: .infinity)
+
+                            Button {
+                                accountToRemove = account
+                            } label: {
+                                Image(systemName: "trash")
+                                    .frame(maxHeight: .infinity)
+                            }
+                            .disabled(isActivating)
+                            .frame(width: 80)
+                        }
+                    }
+
+                    Button {
+                        showingAddAccount = true
+                    } label: {
+                        Label("Add Account", systemImage: "plus.circle")
+                            .padding(.vertical, 8)
+                    }
+                    .disabled(isActivating)
+                }
+            }
+        }
+
+        private var tvOSTopShelfDetail: some View {
+            List {
+                Section {
+                    Button {
+                        selectSource(.disabled)
+                    } label: {
+                        HStack {
+                            Text("Disabled")
+                            Spacer()
+                            if !topShelfEnabled {
+                                Image(systemName: "checkmark")
+                                    .foregroundStyle(.tint)
                             }
                         }
-                        .disabled(isActivating)
-                        .frame(maxWidth: .infinity)
+                    }
+                    .focused($focusedTopShelfItem, equals: .disabled)
 
-                        Button {
-                            accountToRemove = account
-                        } label: {
-                            Image(systemName: "trash")
-                                .frame(maxHeight: .infinity)
+                    Button {
+                        selectSource(.everything)
+                    } label: {
+                        HStack {
+                            Text("Show Everything")
+                            Spacer()
+                            if topShelfEnabled && topShelfSourceMode == .everything {
+                                Image(systemName: "checkmark")
+                                    .foregroundStyle(.tint)
+                            }
                         }
-                        .disabled(isActivating)
-                        .frame(width: 80)
+                    }
+                    .focused($focusedTopShelfItem, equals: .everything)
+                }
+
+                Section("Albums") {
+                    if isLoadingAlbums {
+                        ProgressView()
+                    } else {
+                        ForEach(topShelfAlbums) { album in
+                            Button {
+                                selectSource(.album(album.id))
+                            } label: {
+                                HStack {
+                                    Text(album.name)
+                                    Spacer()
+                                    if topShelfEnabled && topShelfSourceMode == .album && topShelfAlbumId == album.id {
+                                        Image(systemName: "checkmark")
+                                            .foregroundStyle(.tint)
+                                    }
+                                }
+                            }
+                            .focused($focusedTopShelfItem, equals: .album(album.id))
+                        }
                     }
                 }
             }
-        }
-
-        private var tvOSActionsSection: some View {
-            Button {
-                showingAddAccount = true
-            } label: {
-                Label("Add Account", systemImage: "plus.circle")
-                    .padding(.vertical, 8)
-            }
-            .disabled(isActivating)
-        }
-
-        private var tvOSAboutSection: some View {
-            VStack(alignment: .leading, spacing: 16) {
-                HStack {
-                    Text("Version")
-                    Spacer()
-                    Text(appVersion)
-                        .foregroundStyle(.secondary)
+            .listStyle(.grouped)
+            .onChange(of: focusedTopShelfItem) { _, item in
+                withAnimation(.easeInOut(duration: 0.2)) {
+                    switch item {
+                    case .disabled:
+                        topShelfDescription = "Photos will not appear on the Home Screen."
+                    case .everything:
+                        topShelfDescription = "Show random photos from your entire library on the Home Screen."
+                    case .album(let id):
+                        let name = topShelfAlbums.first { $0.id == id }?.name ?? "this album"
+                        topShelfDescription = "Show random photos from \(name) on the Home Screen."
+                    case nil:
+                        topShelfDescription = "Choose which photos appear on the Apple TV Home Screen when ImmichLens is in focus."
+                    }
                 }
             }
+            .task {
+                await loadAlbumsForTopShelf()
+            }
         }
+
+        private func selectSource(_ selection: TopShelfSourceSelection) {
+            let settings = TopShelfSettings()
+            switch selection {
+            case .disabled:
+                topShelfEnabled = false
+                settings.isEnabled = false
+            case .everything:
+                topShelfEnabled = true
+                topShelfSourceMode = .everything
+                topShelfAlbumId = nil
+                settings.isEnabled = true
+                settings.sourceMode = .everything
+                settings.selectedAlbumId = nil
+                settings.selectedAlbumName = nil
+            case .album(let id):
+                topShelfEnabled = true
+                topShelfSourceMode = .album
+                topShelfAlbumId = id
+                settings.isEnabled = true
+                settings.sourceMode = .album
+                settings.selectedAlbumId = id
+                settings.selectedAlbumName = topShelfAlbums.first { $0.id == id }?.name
+            }
+            NotificationCenter.default.post(name: .topShelfSettingsChanged, object: nil)
+        }
+
+        private func loadAlbumsForTopShelf() async {
+            guard let client = apiService.client, let serverUrl = apiService.serverUrl else { return }
+            isLoadingAlbums = true
+            defer { isLoadingAlbums = false }
+
+            do {
+                let response = try await client.getAllAlbums()
+                let dtos = try response.ok.body.json
+                topShelfAlbums = dtos
+                    .map { Album(from: $0, serverUrl: serverUrl) }
+                    .filter { $0.assetCount > 0 }
+                    .sorted { $0.name.localizedCaseInsensitiveCompare($1.name) == .orderedAscending }
+            } catch {
+                guard !Task.isCancelled else { return }
+                logger.error("Failed to fetch albums for TopShelf settings: \(error.localizedDescription)")
+            }
+        }
+
     #endif
 
     // MARK: - Shared
@@ -238,3 +422,15 @@ struct SettingsView: View {
         return "\(version) (\(build))"
     }
 }
+
+#if os(tvOS)
+enum TopShelfSourceSelection: Hashable {
+    case disabled
+    case everything
+    case album(String)
+}
+
+extension Notification.Name {
+    static let topShelfSettingsChanged = Notification.Name("topShelfSettingsChanged")
+}
+#endif

@@ -13,6 +13,7 @@
 		6654BC8B2DC7BC4200BD3FAE /* OpenAPIRuntime in Frameworks */ = {isa = PBXBuildFile; productRef = 6654BC8A2DC7BC4200BD3FAE /* OpenAPIRuntime */; };
 		6654BC8E2DC7BC4900BD3FAE /* OpenAPIURLSession in Frameworks */ = {isa = PBXBuildFile; productRef = 6654BC8D2DC7BC4900BD3FAE /* OpenAPIURLSession */; };
 		66E1A6092DC7D5050021CE42 /* FormValidator in Frameworks */ = {isa = PBXBuildFile; productRef = 66E1A6082DC7D5050021CE42 /* FormValidator */; };
+		AA10DF0100000000000A000E /* TopShelfExtension.appex in Embed App Extensions */ = {isa = PBXBuildFile; fileRef = AA10DF0100000000000A0001 /* TopShelfExtension.appex */; platformFilters = (tvos, ); settings = {ATTRIBUTES = (RemoveHeadersOnCopy, ); }; };
 		EF1D5E9CF775299D25A8E1AD /* Foundation.framework in Frameworks */ = {isa = PBXBuildFile; fileRef = 5CEB70B427D812446B4132B5 /* Foundation.framework */; };
 /* End PBXBuildFile section */
 
@@ -24,6 +25,13 @@
 			remoteGlobalIDString = 6654BC732DC7BC0A00BD3FAE;
 			remoteInfo = ImmichLens;
 		};
+		AA10DF0100000000000A0008 /* PBXContainerItemProxy */ = {
+			isa = PBXContainerItemProxy;
+			containerPortal = 6654BC6C2DC7BC0A00BD3FAE /* Project object */;
+			proxyType = 1;
+			remoteGlobalIDString = AA10DF0100000000000A0007;
+			remoteInfo = TopShelfExtension;
+		};
 		AABB0001CCDD00EE11FF220A /* PBXContainerItemProxy */ = {
 			isa = PBXContainerItemProxy;
 			containerPortal = 6654BC6C2DC7BC0A00BD3FAE /* Project object */;
@@ -33,18 +41,54 @@
 		};
 /* End PBXContainerItemProxy section */
 
+/* Begin PBXCopyFilesBuildPhase section */
+		AA10DF0100000000000A000A /* Embed App Extensions */ = {
+			isa = PBXCopyFilesBuildPhase;
+			dstPath = "";
+			dstSubfolder = PlugIns;
+			files = (
+				AA10DF0100000000000A000E /* TopShelfExtension.appex in Embed App Extensions */,
+			);
+			name = "Embed App Extensions";
+		};
+/* End PBXCopyFilesBuildPhase section */
+
 /* Begin PBXFileReference section */
 		5CEB70B427D812446B4132B5 /* Foundation.framework */ = {isa = PBXFileReference; lastKnownFileType = wrapper.framework; name = Foundation.framework; path = Platforms/AppleTVOS.platform/Developer/SDKs/AppleTVOS18.0.sdk/System/Library/Frameworks/Foundation.framework; sourceTree = DEVELOPER_DIR; };
 		6654BC742DC7BC0A00BD3FAE /* ImmichLens.app */ = {isa = PBXFileReference; explicitFileType = wrapper.application; includeInIndex = 0; path = ImmichLens.app; sourceTree = BUILT_PRODUCTS_DIR; };
 		6D1DBF51B018FED6C8459E1F /* ImmichLensUITests.xctest */ = {isa = PBXFileReference; explicitFileType = wrapper.cfbundle; includeInIndex = 0; path = ImmichLensUITests.xctest; sourceTree = BUILT_PRODUCTS_DIR; };
 		785C9C024243E8357C1E7278 /* ImmichLensUITests.swift */ = {isa = PBXFileReference; includeInIndex = 1; lastKnownFileType = sourcecode.swift; path = ImmichLensUITests.swift; sourceTree = "<group>"; };
+		AA10DF0100000000000A0001 /* TopShelfExtension.appex */ = {isa = PBXFileReference; explicitFileType = "wrapper.app-extension"; includeInIndex = 0; path = TopShelfExtension.appex; sourceTree = BUILT_PRODUCTS_DIR; };
 		AABB0001CCDD00EE11FF2201 /* ImmichLensTests.xctest */ = {isa = PBXFileReference; explicitFileType = wrapper.cfbundle; includeInIndex = 0; path = ImmichLensTests.xctest; sourceTree = BUILT_PRODUCTS_DIR; };
 /* End PBXFileReference section */
+
+/* Begin PBXFileSystemSynchronizedBuildFileExceptionSet section */
+		AA10DF0100000000000A00F1 /* Exceptions for "TopShelfExtension" folder in "TopShelfExtension" target */ = {
+			isa = PBXFileSystemSynchronizedBuildFileExceptionSet;
+			membershipExceptions = (
+				Info.plist,
+			);
+			target = AA10DF0100000000000A0007 /* TopShelfExtension */;
+		};
+/* End PBXFileSystemSynchronizedBuildFileExceptionSet section */
 
 /* Begin PBXFileSystemSynchronizedRootGroup section */
 		6654BC762DC7BC0A00BD3FAE /* ImmichLens */ = {
 			isa = PBXFileSystemSynchronizedRootGroup;
 			path = ImmichLens;
+			sourceTree = "<group>";
+		};
+		AA10DF0100000000000A0002 /* TopShelfExtension */ = {
+			isa = PBXFileSystemSynchronizedRootGroup;
+			exceptions = (
+				AA10DF0100000000000A00F1 /* Exceptions for "TopShelfExtension" folder in "TopShelfExtension" target */,
+			);
+			path = TopShelfExtension;
+			sourceTree = "<group>";
+		};
+		AA10DF0100000000000A0003 /* Shared */ = {
+			isa = PBXFileSystemSynchronizedRootGroup;
+			path = Shared;
 			sourceTree = "<group>";
 		};
 		AABB0001CCDD00EE11FF2202 /* ImmichLensTests */ = {
@@ -63,6 +107,11 @@
 				6654BC8B2DC7BC4200BD3FAE /* OpenAPIRuntime in Frameworks */,
 				6654BC8E2DC7BC4900BD3FAE /* OpenAPIURLSession in Frameworks */,
 				66548AD82DD0019A00F23759 /* Nuke in Frameworks */,
+			);
+		};
+		AA10DF0100000000000A0005 /* Frameworks */ = {
+			isa = PBXFrameworksBuildPhase;
+			files = (
 			);
 		};
 		AABB0001CCDD00EE11FF2205 /* Frameworks */ = {
@@ -91,6 +140,8 @@
 			isa = PBXGroup;
 			children = (
 				6654BC762DC7BC0A00BD3FAE /* ImmichLens */,
+				AA10DF0100000000000A0003 /* Shared */,
+				AA10DF0100000000000A0002 /* TopShelfExtension */,
 				AABB0001CCDD00EE11FF2202 /* ImmichLensTests */,
 				66548AD62DD0019A00F23759 /* Frameworks */,
 				6654BC752DC7BC0A00BD3FAE /* Products */,
@@ -104,6 +155,7 @@
 				6654BC742DC7BC0A00BD3FAE /* ImmichLens.app */,
 				AABB0001CCDD00EE11FF2201 /* ImmichLensTests.xctest */,
 				6D1DBF51B018FED6C8459E1F /* ImmichLensUITests.xctest */,
+				AA10DF0100000000000A0001 /* TopShelfExtension.appex */,
 			);
 			name = Products;
 			sourceTree = "<group>";
@@ -134,14 +186,17 @@
 				6654BC702DC7BC0A00BD3FAE /* Sources */,
 				6654BC712DC7BC0A00BD3FAE /* Frameworks */,
 				6654BC722DC7BC0A00BD3FAE /* Resources */,
+				AA10DF0100000000000A000A /* Embed App Extensions */,
 			);
 			buildRules = (
 			);
 			dependencies = (
 				6654BC902DC7BC7E00BD3FAE /* PBXTargetDependency */,
+				AA10DF0100000000000A0009 /* PBXTargetDependency */,
 			);
 			fileSystemSynchronizedGroups = (
 				6654BC762DC7BC0A00BD3FAE /* ImmichLens */,
+				AA10DF0100000000000A0003 /* Shared */,
 			);
 			name = ImmichLens;
 			packageProductDependencies = (
@@ -172,6 +227,25 @@
 			productName = ImmichLensUITests;
 			productReference = 6D1DBF51B018FED6C8459E1F /* ImmichLensUITests.xctest */;
 			productType = "com.apple.product-type.bundle.ui-testing";
+		};
+		AA10DF0100000000000A0007 /* TopShelfExtension */ = {
+			isa = PBXNativeTarget;
+			buildConfigurationList = AA10DF0100000000000A000D /* Build configuration list for PBXNativeTarget "TopShelfExtension" */;
+			buildPhases = (
+				AA10DF0100000000000A0004 /* Sources */,
+				AA10DF0100000000000A0005 /* Frameworks */,
+				AA10DF0100000000000A0006 /* Resources */,
+			);
+			buildRules = (
+			);
+			fileSystemSynchronizedGroups = (
+				AA10DF0100000000000A0002 /* TopShelfExtension */,
+				AA10DF0100000000000A0003 /* Shared */,
+			);
+			name = TopShelfExtension;
+			productName = TopShelfExtension;
+			productReference = AA10DF0100000000000A0001 /* TopShelfExtension.appex */;
+			productType = "com.apple.product-type.app-extension";
 		};
 		AABB0001CCDD00EE11FF2203 /* ImmichLensTests */ = {
 			isa = PBXNativeTarget;
@@ -211,6 +285,9 @@
 						CreatedOnToolsVersion = 16.3;
 						TestTargetID = 6654BC732DC7BC0A00BD3FAE;
 					};
+					AA10DF0100000000000A0007 = {
+						CreatedOnToolsVersion = 16.3;
+					};
 					AABB0001CCDD00EE11FF2203 = {
 						CreatedOnToolsVersion = 16.3;
 						TestTargetID = 6654BC732DC7BC0A00BD3FAE;
@@ -239,6 +316,7 @@
 			projectRoot = "";
 			targets = (
 				6654BC732DC7BC0A00BD3FAE /* ImmichLens */,
+				AA10DF0100000000000A0007 /* TopShelfExtension */,
 				AABB0001CCDD00EE11FF2203 /* ImmichLensTests */,
 				7B913997CEB430EA198332F7 /* ImmichLensUITests */,
 			);
@@ -252,6 +330,11 @@
 			);
 		};
 		9C5D139AB3C766FD94066558 /* Resources */ = {
+			isa = PBXResourcesBuildPhase;
+			files = (
+			);
+		};
+		AA10DF0100000000000A0006 /* Resources */ = {
 			isa = PBXResourcesBuildPhase;
 			files = (
 			);
@@ -275,6 +358,11 @@
 			files = (
 			);
 		};
+		AA10DF0100000000000A0004 /* Sources */ = {
+			isa = PBXSourcesBuildPhase;
+			files = (
+			);
+		};
 		AABB0001CCDD00EE11FF2204 /* Sources */ = {
 			isa = PBXSourcesBuildPhase;
 			files = (
@@ -292,6 +380,15 @@
 			name = ImmichLens;
 			target = 6654BC732DC7BC0A00BD3FAE /* ImmichLens */;
 			targetProxy = 27B949FB39A168BD40370E39 /* PBXContainerItemProxy */;
+		};
+		AA10DF0100000000000A0009 /* PBXTargetDependency */ = {
+			isa = PBXTargetDependency;
+			name = TopShelfExtension;
+			platformFilters = (
+				tvos,
+			);
+			target = AA10DF0100000000000A0007 /* TopShelfExtension */;
+			targetProxy = AA10DF0100000000000A0008 /* PBXContainerItemProxy */;
 		};
 		AABB0001CCDD00EE11FF220B /* PBXTargetDependency */ = {
 			isa = PBXTargetDependency;
@@ -430,12 +527,14 @@
 				"ASSETCATALOG_COMPILER_APPICON_NAME[sdk=appletv*]" = Icons;
 				ASSETCATALOG_COMPILER_GLOBAL_ACCENT_COLOR_NAME = AccentColor;
 				ASSETCATALOG_COMPILER_INCLUDE_ALL_APPICON_ASSETS = YES;
+				"CODE_SIGN_ENTITLEMENTS[sdk=appletv*]" = "ImmichLens/ImmichLens-tvOS.entitlements";
 				"CODE_SIGN_ENTITLEMENTS[sdk=macosx*]" = ImmichLens/ImmichLens.entitlements;
 				CODE_SIGN_STYLE = Automatic;
-				"ENABLE_HARDENED_RUNTIME[sdk=macosx*]" = YES;
 				CURRENT_PROJECT_VERSION = 2;
+				"ENABLE_HARDENED_RUNTIME[sdk=macosx*]" = YES;
 				ENABLE_PREVIEWS = YES;
 				GENERATE_INFOPLIST_FILE = YES;
+				INFOPLIST_FILE = Info.plist;
 				INFOPLIST_KEY_CFBundleDisplayName = "Immich Lens";
 				INFOPLIST_KEY_ITSAppUsesNonExemptEncryption = NO;
 				INFOPLIST_KEY_LSApplicationCategoryType = "public.app-category.photography";
@@ -464,12 +563,14 @@
 				"ASSETCATALOG_COMPILER_APPICON_NAME[sdk=appletv*]" = Icons;
 				ASSETCATALOG_COMPILER_GLOBAL_ACCENT_COLOR_NAME = AccentColor;
 				ASSETCATALOG_COMPILER_INCLUDE_ALL_APPICON_ASSETS = YES;
+				"CODE_SIGN_ENTITLEMENTS[sdk=appletv*]" = "ImmichLens/ImmichLens-tvOS.entitlements";
 				"CODE_SIGN_ENTITLEMENTS[sdk=macosx*]" = ImmichLens/ImmichLens.entitlements;
 				CODE_SIGN_STYLE = Automatic;
-				"ENABLE_HARDENED_RUNTIME[sdk=macosx*]" = YES;
 				CURRENT_PROJECT_VERSION = 2;
+				"ENABLE_HARDENED_RUNTIME[sdk=macosx*]" = YES;
 				ENABLE_PREVIEWS = YES;
 				GENERATE_INFOPLIST_FILE = YES;
+				INFOPLIST_FILE = Info.plist;
 				INFOPLIST_KEY_CFBundleDisplayName = "Immich Lens";
 				INFOPLIST_KEY_ITSAppUsesNonExemptEncryption = NO;
 				INFOPLIST_KEY_LSApplicationCategoryType = "public.app-category.photography";
@@ -539,6 +640,59 @@
 				TVOS_DEPLOYMENT_TARGET = 18.4;
 			};
 			name = Debug;
+		};
+		AA10DF0100000000000A000B /* Debug configuration for PBXNativeTarget "TopShelfExtension" */ = {
+			isa = XCBuildConfiguration;
+			buildSettings = {
+				CODE_SIGN_ENTITLEMENTS = TopShelfExtension/TopShelfExtension.entitlements;
+				CODE_SIGN_STYLE = Automatic;
+				CURRENT_PROJECT_VERSION = 2;
+				DEVELOPMENT_TEAM = PV3AE7C4X7;
+				INFOPLIST_FILE = TopShelfExtension/Info.plist;
+				LD_RUNPATH_SEARCH_PATHS = (
+					"$(inherited)",
+					"@executable_path/Frameworks",
+					"@executable_path/../../Frameworks",
+				);
+				MARKETING_VERSION = 1.0;
+				PRODUCT_BUNDLE_IDENTIFIER = dev.lav.ImmichLens.TopShelf;
+				PRODUCT_NAME = "$(TARGET_NAME)";
+				SDKROOT = appletvos;
+				SKIP_INSTALL = YES;
+				SUPPORTED_PLATFORMS = "appletvos appletvsimulator";
+				SWIFT_EMIT_LOC_STRINGS = YES;
+				SWIFT_VERSION = 5.0;
+				TARGETED_DEVICE_FAMILY = 3;
+				TVOS_DEPLOYMENT_TARGET = 18.4;
+			};
+			name = Debug;
+		};
+		AA10DF0100000000000A000C /* Release configuration for PBXNativeTarget "TopShelfExtension" */ = {
+			isa = XCBuildConfiguration;
+			buildSettings = {
+				CODE_SIGN_ENTITLEMENTS = TopShelfExtension/TopShelfExtension.entitlements;
+				CODE_SIGN_STYLE = Automatic;
+				CURRENT_PROJECT_VERSION = 2;
+				DEVELOPMENT_TEAM = PV3AE7C4X7;
+				INFOPLIST_FILE = TopShelfExtension/Info.plist;
+				LD_RUNPATH_SEARCH_PATHS = (
+					"$(inherited)",
+					"@executable_path/Frameworks",
+					"@executable_path/../../Frameworks",
+				);
+				MARKETING_VERSION = 1.0;
+				PRODUCT_BUNDLE_IDENTIFIER = dev.lav.ImmichLens.TopShelf;
+				PRODUCT_NAME = "$(TARGET_NAME)";
+				SDKROOT = appletvos;
+				SKIP_INSTALL = YES;
+				SUPPORTED_PLATFORMS = "appletvos appletvsimulator";
+				SWIFT_EMIT_LOC_STRINGS = YES;
+				SWIFT_VERSION = 5.0;
+				TARGETED_DEVICE_FAMILY = 3;
+				TVOS_DEPLOYMENT_TARGET = 18.4;
+				VALIDATE_PRODUCT = YES;
+			};
+			name = Release;
 		};
 		AABB0001CCDD00EE11FF2207 /* Debug configuration for PBXNativeTarget "ImmichLensTests" */ = {
 			isa = XCBuildConfiguration;
@@ -615,6 +769,14 @@
 			buildConfigurations = (
 				6654BC802DC7BC0C00BD3FAE /* Debug configuration for PBXNativeTarget "ImmichLens" */,
 				6654BC812DC7BC0C00BD3FAE /* Release configuration for PBXNativeTarget "ImmichLens" */,
+			);
+			defaultConfigurationName = Release;
+		};
+		AA10DF0100000000000A000D /* Build configuration list for PBXNativeTarget "TopShelfExtension" */ = {
+			isa = XCConfigurationList;
+			buildConfigurations = (
+				AA10DF0100000000000A000B /* Debug configuration for PBXNativeTarget "TopShelfExtension" */,
+				AA10DF0100000000000A000C /* Release configuration for PBXNativeTarget "TopShelfExtension" */,
 			);
 			defaultConfigurationName = Release;
 		};

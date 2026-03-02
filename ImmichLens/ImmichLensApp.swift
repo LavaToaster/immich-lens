@@ -17,6 +17,10 @@ struct ImmichLensApp: App {
     @State private var apiService = APIService()
     @State private var accountStore = AccountStore()
     @State private var prefetchService: ThumbnailPrefetchService?
+    #if os(tvOS)
+    @State private var topShelfService: TopShelfService?
+    @State private var deepLinkRouter = DeepLinkRouter()
+    #endif
 
     var body: some Scene {
         WindowGroup {
@@ -31,6 +35,9 @@ struct ImmichLensApp: App {
             }
             .environment(apiService)
             .environment(accountStore)
+            #if os(tvOS)
+            .environment(deepLinkRouter)
+            #endif
             .task {
                 await accountStore.initialise(apiService: apiService)
             }
@@ -39,6 +46,10 @@ struct ImmichLensApp: App {
                 (ImagePipeline.shared.configuration.dataCache as? DataCache)?.removeAll()
                 prefetchService?.stopPrefetching()
                 prefetchService = nil
+                #if os(tvOS)
+                topShelfService?.stopRefreshing()
+                topShelfService = nil
+                #endif
 
                 if let token {
                     let config = URLSessionConfiguration.default
@@ -52,13 +63,53 @@ struct ImmichLensApp: App {
                     let service = ThumbnailPrefetchService(apiService: apiService)
                     prefetchService = service
                     service.startPrefetching()
+
+                    #if os(tvOS)
+                    let tsService = TopShelfService(apiService: apiService)
+                    topShelfService = tsService
+                    tsService.startRefreshing()
+                    #endif
                 } else {
                     ImagePipeline.shared = ImagePipeline()
                     selection = .photos
                 }
             }
+            #if os(tvOS)
+            .onReceive(NotificationCenter.default.publisher(for: .topShelfSettingsChanged)) { _ in
+                topShelfService?.triggerRefresh()
+            }
+            .onOpenURL { url in
+                handleDeepLink(url)
+            }
+            #endif
         }
     }
+
+    #if os(tvOS)
+    private func handleDeepLink(_ url: URL) {
+        guard url.scheme == "immichlens" else { return }
+
+        let pathComponents = url.pathComponents.filter { $0 != "/" }
+
+        // immichlens://albums/{albumId}/assets/{assetId}
+        if url.host == "albums",
+           pathComponents.count == 3,
+           pathComponents[1] == "assets" {
+            let albumId = pathComponents[0]
+            let assetId = pathComponents[2]
+            selection = .library(.albums)
+            deepLinkRouter.pending = .albumAsset(albumId: albumId, assetId: assetId)
+            return
+        }
+
+        // immichlens://asset/{assetId}
+        if url.host == "asset", let assetId = pathComponents.first {
+            selection = .photos
+            deepLinkRouter.pending = .asset(id: assetId)
+            return
+        }
+    }
+    #endif
 
     private var mainTabView: some View {
         TabView(selection: $selection) {
@@ -133,6 +184,21 @@ extension ImmichLensApp {
 }
 
 let logger = Logger(subsystem: "dev.lav.immichlens", category: "general")
+
+// MARK: - Deep Linking
+
+#if os(tvOS)
+@MainActor
+@Observable
+class DeepLinkRouter {
+    var pending: DeepLink?
+
+    enum DeepLink: Equatable {
+        case asset(id: String)
+        case albumAsset(albumId: String, assetId: String)
+    }
+}
+#endif
 
 enum RootTabs: Equatable, Hashable, Identifiable {
     case photos

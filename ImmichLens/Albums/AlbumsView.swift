@@ -10,6 +10,7 @@ struct AlbumsView: View {
     #if os(tvOS)
     private let columns = Array(repeating: GridItem(.flexible(), spacing: 40), count: 4)
     private let spacing: CGFloat = 40
+    @Environment(DeepLinkRouter.self) private var deepLinkRouter
     #else
     private let columns = [GridItem(.adaptive(minimum: 160, maximum: 240), spacing: 16)]
     private let spacing: CGFloat = 16
@@ -22,8 +23,15 @@ struct AlbumsView: View {
         NavigationStack(path: $navigationPath) {
             gridContent
                 .navigationDestination(for: Album.self) { album in
+                    #if os(tvOS)
+                    let assetId = deepLinkAssetId
+                    AlbumAssetsView(album: album, initialAssetId: assetId)
+                        .environment(apiService)
+                        .onAppear { deepLinkAssetId = nil }
+                    #else
                     AlbumAssetsView(album: album)
                         .environment(apiService)
+                    #endif
                 }
                 #if os(macOS)
                 .navigationTitle("Albums")
@@ -34,10 +42,20 @@ struct AlbumsView: View {
         }
         .task(id: apiService.token) {
             await loadAlbums()
+            #if os(tvOS)
+            await handlePendingDeepLink()
+            #endif
         }
         .onChange(of: apiService.token) {
             navigationPath = NavigationPath()
         }
+        #if os(tvOS)
+        .onChange(of: deepLinkRouter.pending) { _, link in
+            guard !isLoading else { return }
+            guard case .albumAsset = link else { return }
+            Task { await handlePendingDeepLink() }
+        }
+        #endif
     }
 
     private var gridContent: some View {
@@ -96,6 +114,31 @@ struct AlbumsView: View {
             logger.error("Failed to fetch albums: \(error.localizedDescription)")
         }
     }
+
+    #if os(tvOS)
+    @State private var deepLinkAssetId: String?
+
+    private func handlePendingDeepLink() async {
+        guard case .albumAsset(let albumId, let assetId) = deepLinkRouter.pending else { return }
+        deepLinkRouter.pending = nil
+        await navigateToAlbumAsset(albumId: albumId, assetId: assetId)
+    }
+
+    private func navigateToAlbumAsset(albumId: String, assetId: String) async {
+        guard let client = apiService.client, let serverUrl = apiService.serverUrl else { return }
+        do {
+            let albumResponse = try await client.getAlbumInfo(path: .init(id: albumId))
+            let albumDto = try albumResponse.ok.body.json
+            let album = Album(from: albumDto, serverUrl: serverUrl)
+
+            deepLinkAssetId = assetId
+            navigationPath = NavigationPath()
+            navigationPath.append(album)
+        } catch {
+            logger.error("Deep link: failed to navigate to album \(albumId) asset \(assetId): \(error.localizedDescription)")
+        }
+    }
+    #endif
 }
 
 private struct AlbumCell: View {

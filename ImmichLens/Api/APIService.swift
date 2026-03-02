@@ -129,21 +129,33 @@ class APIService {
 /// @see: https://developer.apple.com/forums/thread/744220
 struct ComplainLessTranscoder: DateTranscoder {
   private static let encoder = ISO8601DateFormatter()
-  private static let decoder: ISO8601DateFormatter = {
+
+  /// With fractional seconds: "2024-01-15T19:30:00.000Z"
+  private static let withFractional: ISO8601DateFormatter = {
     let f = ISO8601DateFormatter()
-    f.formatOptions = [.withFractionalSeconds]
+    f.formatOptions = [.withInternetDateTime, .withFractionalSeconds]
+    return f
+  }()
+
+  /// Without fractional seconds: "2024-01-15T19:30:00Z"
+  private static let withoutFractional: ISO8601DateFormatter = {
+    let f = ISO8601DateFormatter()
+    f.formatOptions = [.withInternetDateTime]
     return f
   }()
 
   public func encode(_ date: Date) throws -> String { Self.encoder.string(from: date) }
 
   public func decode(_ dateString: String) throws -> Date {
-    guard let date = Self.decoder.date(from: dateString) else {
-      throw DecodingError.dataCorrupted(
-        .init(codingPath: [], debugDescription: "Expected date string to be ISO8601-formatted.")
-      )
+    if let date = Self.withFractional.date(from: dateString) {
+      return date
     }
-    return date
+    if let date = Self.withoutFractional.date(from: dateString) {
+      return date
+    }
+    throw DecodingError.dataCorrupted(
+      .init(codingPath: [], debugDescription: "Expected date string to be ISO8601-formatted.")
+    )
   }
 }
 
