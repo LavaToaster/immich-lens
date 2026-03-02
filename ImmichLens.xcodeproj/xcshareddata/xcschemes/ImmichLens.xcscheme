@@ -48,20 +48,6 @@
                ReferencedContainer = "container:ImmichLens.xcodeproj">
             </BuildableReference>
          </BuildActionEntry>
-         <BuildActionEntry
-            buildForTesting = "NO"
-            buildForRunning = "YES"
-            buildForProfiling = "YES"
-            buildForArchiving = "YES"
-            buildForAnalyzing = "YES">
-            <BuildableReference
-               BuildableIdentifier = "primary"
-               BlueprintIdentifier = "AA10DF0100000000000A0007"
-               BuildableName = "TopShelfExtension.appex"
-               BlueprintName = "TopShelfExtension"
-               ReferencedContainer = "container:ImmichLens.xcodeproj">
-            </BuildableReference>
-         </BuildActionEntry>
       </BuildActionEntries>
    </BuildAction>
    <TestAction
