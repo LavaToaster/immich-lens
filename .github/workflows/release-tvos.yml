@@ -71,7 +71,7 @@ jobs:
 
       - name: Generate ExportOptions.plist
         env:
-          PROFILE_NAME: Immich Lens tvOS App Store Connect
+          PROFILE_NAME: Immich Lens tvOS
         run: |
           cat > ExportOptions.plist << PLIST
           <?xml version="1.0" encoding="UTF-8"?>
@@ -89,6 +89,8 @@ jobs:
               <key>provisioningProfiles</key>
               <dict>
                   <key>dev.lav.ImmichLens</key>
+                  <string>${PROFILE_NAME}</string>
+                  <key>dev.lav.ImmichLens.TopShelf</key>
                   <string>${PROFILE_NAME}</string>
               </dict>
           </dict>
