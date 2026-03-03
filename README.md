@@ -33,16 +33,33 @@ ImmichLens is not a full Immich client — it's a lens into your library. The fo
 
 ## Screenshots
 
+### tvOS
+
 <p align="center">
-  <img src="screenshots/01_Photos.png" alt="Photos" width="49%">
-  <img src="screenshots/02_Explore.png" alt="Explore" width="49%">
+  <img src="screenshots/tvOS/01_Photos.png" alt="Photos" width="49%">
+  <img src="screenshots/tvOS/02_Explore.png" alt="Explore" width="49%">
 </p>
 <p align="center">
-  <img src="screenshots/03_People.png" alt="People" width="49%">
-  <img src="screenshots/04_Albums.png" alt="Albums" width="49%">
+  <img src="screenshots/tvOS/03_People.png" alt="People" width="49%">
+  <img src="screenshots/tvOS/04_Albums.png" alt="Albums" width="49%">
 </p>
 <p align="center">
-  <img src="screenshots/05_Favourites.png" alt="Favourites" width="49%">
+  <img src="screenshots/tvOS/05_Favourites.png" alt="Favourites" width="49%">
+</p>
+
+### macOS
+
+<p align="center">
+  <img src="screenshots/macOS/01_Photos.png" alt="Photos" width="49%">
+  <img src="screenshots/macOS/02_Explore.png" alt="Explore" width="49%">
+</p>
+<p align="center">
+  <img src="screenshots/macOS/03_People.png" alt="People" width="49%">
+  <img src="screenshots/macOS/04_Settings.png" alt="Settings" width="49%">
+</p>
+<p align="center">
+  <img src="screenshots/macOS/05_Albums.png" alt="Albums" width="49%">
+  <img src="screenshots/macOS/06_Favourites.png" alt="Favourites" width="49%">
 </p>
 
 ## Features
