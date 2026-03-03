@@ -24,6 +24,8 @@ struct AssetGridView: View {
     #endif
 
     var visibleRange: Binding<Range<Int>>?
+    var onSlideshow: (() -> Void)?
+    var onShuffle: (() -> Void)?
 
     init(
         assets: [Asset],
@@ -32,7 +34,9 @@ struct AssetGridView: View {
         title: String? = nil,
         subtitle: String? = nil,
         focusedIndex: FocusState<Int?>.Binding,
-        visibleRange: Binding<Range<Int>>? = nil
+        visibleRange: Binding<Range<Int>>? = nil,
+        onSlideshow: (() -> Void)? = nil,
+        onShuffle: (() -> Void)? = nil
     ) {
         self.assets = assets
         self.columns = columns
@@ -41,6 +45,8 @@ struct AssetGridView: View {
         self.subtitle = subtitle
         self.focusedIndex = focusedIndex
         self.visibleRange = visibleRange
+        self.onSlideshow = onSlideshow
+        self.onShuffle = onShuffle
     }
 
     private var totalRows: Int {
@@ -152,18 +158,34 @@ struct AssetGridView: View {
         @ViewBuilder
         private var tvOSHeaderContent: some View {
             if let title, !title.isEmpty {
-                VStack(alignment: .leading, spacing: 4) {
-                    Text(title)
-                        .font(.headline)
-                        .bold()
+                HStack {
+                    VStack(alignment: .leading, spacing: 4) {
+                        Text(title)
+                            .font(.headline)
+                            .bold()
 
-                    if let subtitle, !subtitle.isEmpty {
-                        Text(subtitle)
-                            .font(.subheadline)
-                            .foregroundStyle(.secondary)
+                        if let subtitle, !subtitle.isEmpty {
+                            Text(subtitle)
+                                .font(.subheadline)
+                                .foregroundStyle(.secondary)
+                        }
+                    }
+                    .frame(maxWidth: .infinity, alignment: .leading)
+
+                    if onSlideshow != nil || onShuffle != nil {
+                        Menu {
+                            if let onSlideshow {
+                                Button("Play", systemImage: "play.circle", action: onSlideshow)
+                            }
+                            if let onShuffle {
+                                Button("Shuffle", systemImage: "shuffle.circle", action: onShuffle)
+                            }
+                        } label: {
+                            Label("Slideshow", systemImage: "play.square.stack")
+                                .font(.caption)
+                        }
                     }
                 }
-                .frame(maxWidth: .infinity, alignment: .leading)
             }
         }
 

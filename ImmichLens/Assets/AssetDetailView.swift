@@ -9,11 +9,20 @@ import SwiftUI
 struct AssetDetailView: View {
     let assets: [Asset]
     @State private var currentIndex: Int
+    @State private var slideshowMode: SlideshowMode
+    @State private var slideshowTask: Task<Void, Never>?
+    @State private var shuffledIndices: [Int] = []
+    @State private var shuffleCursor: Int = 0
+    @State private var showSlideshowIndicator = false
+    @State private var slideshowProgress: CGFloat = 0
+    @State private var lastSlideshowMode: SlideshowMode
 
-    init(assets: [Asset], initialAsset: Asset) {
+    init(assets: [Asset], initialAsset: Asset, slideshowMode: SlideshowMode = .off) {
         self.assets = assets
         let index = assets.firstIndex(of: initialAsset) ?? 0
         self._currentIndex = State(initialValue: min(index, max(assets.count - 1, 0)))
+        self._slideshowMode = State(initialValue: slideshowMode)
+        self._lastSlideshowMode = State(initialValue: slideshowMode == .off ? .ordered : slideshowMode)
     }
     @Environment(\.dismiss) private var dismiss
     @State private var isPlayingVideo = false
@@ -46,30 +55,96 @@ struct AssetDetailView: View {
                 AssetPageView(
                     asset: assets[currentIndex],
                     isActive: true,
+                    imageMode: slideshowImageMode,
+                    kenBurnsEnabled: kenBurnsEnabled,
+                    slideshowInterval: slideshowSettings.interval,
                     isPlayingVideo: $isPlayingVideo
                 )
                 .id(currentIndex)
+                .transition(slideshowTransition == .fade ? .opacity : .push(from: .trailing))
                 .environment(apiService)
                 .frame(width: geometry.size.width, height: geometry.size.height)
                 #elseif os(tvOS)
-                ForEach(nearbyIndices, id: \.self) { index in
+                if slideshowTransition == .fade {
                     AssetPageView(
-                        asset: assets[index],
-                        isActive: index == currentIndex,
+                        asset: assets[currentIndex],
+                        isActive: true,
+                        imageMode: slideshowImageMode,
+                        kenBurnsEnabled: kenBurnsEnabled,
+                        slideshowInterval: slideshowSettings.interval,
                         isPlayingVideo: $isPlayingVideo
                     )
+                    .id(currentIndex)
+                    .transition(.opacity)
                     .environment(apiService)
                     .frame(width: geometry.size.width, height: geometry.size.height)
-                    .clipped()
-                    .offset(x: CGFloat(index - currentIndex) * geometry.size.width)
+                } else {
+                    ForEach(nearbyIndices, id: \.self) { index in
+                        AssetPageView(
+                            asset: assets[index],
+                            isActive: index == currentIndex,
+                            imageMode: slideshowImageMode,
+                            kenBurnsEnabled: kenBurnsEnabled,
+                            slideshowInterval: slideshowSettings.interval,
+                            isPlayingVideo: $isPlayingVideo
+                        )
+                        .environment(apiService)
+                        .frame(width: geometry.size.width, height: geometry.size.height)
+                        .clipped()
+                        .offset(x: CGFloat(index - currentIndex) * geometry.size.width)
+                    }
                 }
                 RemoteInputView(
                     onSelect: { handleSelect() },
-                    onPlayPause: { handleSelect() },
-                    onLeft: { if currentIndex > 0 { currentIndex -= 1 } },
-                    onRight: { if currentIndex < assets.count - 1 { currentIndex += 1 } }
+                    onPlayPause: { handlePlayPause() },
+                    onLeft: {
+                        if slideshowMode != .off {
+                            skipSlideshow(forward: false)
+                        } else if currentIndex > 0 {
+                            currentIndex -= 1
+                        }
+                    },
+                    onRight: {
+                        if slideshowMode != .off {
+                            skipSlideshow(forward: true)
+                        } else if currentIndex < assets.count - 1 {
+                            currentIndex += 1
+                        }
+                    }
                 )
                 #endif
+
+                if showSlideshowIndicator {
+                    VStack {
+                        HStack {
+                            Spacer()
+                            Image(systemName: slideshowMode == .shuffle ? "shuffle" : "play.fill")
+                                .font(.title2)
+                                .foregroundStyle(.white)
+                                .padding(12)
+                                .background(.black.opacity(0.5), in: RoundedRectangle(cornerRadius: 8))
+                                .padding()
+                        }
+                        Spacer()
+                    }
+                    .transition(.opacity)
+                    .allowsHitTesting(false)
+                }
+
+                if slideshowMode != .off && slideshowShowProgressBar {
+                    VStack {
+                        Spacer()
+                        GeometryReader { barGeo in
+                            Capsule()
+                                .fill(.white.opacity(0.5))
+                                .frame(width: barGeo.size.width * min(max(slideshowProgress, 0), 1), height: 3)
+                        }
+                        .frame(height: 3)
+                        .padding(.horizontal, 40)
+                        .padding(.bottom, 20)
+                    }
+                    .allowsHitTesting(false)
+                }
             }
             #if !os(macOS)
             .animation(.easeInOut(duration: 0.3), value: currentIndex)
@@ -90,17 +165,32 @@ struct AssetDetailView: View {
         .focused($isDetailFocused)
         .onAppear { isDetailFocused = true }
         .onKeyPress(.leftArrow) {
-            guard !isPlayingVideo, currentIndex > 0 else { return .ignored }
-            currentIndex -= 1
+            guard !isPlayingVideo else { return .ignored }
+            if slideshowMode != .off {
+                skipSlideshow(forward: false)
+            } else {
+                guard currentIndex > 0 else { return .ignored }
+                withAnimation(.easeInOut(duration: 0.3)) { currentIndex -= 1 }
+            }
             return .handled
         }
         .onKeyPress(.rightArrow) {
-            guard !isPlayingVideo, currentIndex < assets.count - 1 else { return .ignored }
-            currentIndex += 1
+            guard !isPlayingVideo else { return .ignored }
+            if slideshowMode != .off {
+                skipSlideshow(forward: true)
+            } else {
+                guard currentIndex < assets.count - 1 else { return .ignored }
+                withAnimation(.easeInOut(duration: 0.3)) { currentIndex += 1 }
+            }
             return .handled
         }
         .onKeyPress(.escape) {
             dismiss()
+            return .handled
+        }
+        .onKeyPress(.space) {
+            guard !isPlayingVideo else { return .ignored }
+            toggleSlideshow()
             return .handled
         }
         #endif
@@ -109,20 +199,27 @@ struct AssetDetailView: View {
             handleSelect()
         }
         #endif
+        .task {
+            if slideshowMode != .off {
+                startSlideshow(mode: slideshowMode)
+            }
+        }
+        .onDisappear { stopSlideshow() }
         .onChange(of: currentIndex) {
             isPlayingVideo = false
         }
-        #if os(tvOS)
         .onChange(of: isPlayingVideo) { _, playing in
             if playing {
+                stopSlideshow()
+                #if os(tvOS)
                 // Yield to the run loop so SwiftUI can render the spinner
                 // before we do the heavy AVPlayer setup work
                 DispatchQueue.main.async {
                     presentVideoPlayer()
                 }
+                #endif
             }
         }
-        #endif
         } // else
     }
 
@@ -134,11 +231,146 @@ struct AssetDetailView: View {
         assets[safeIndex]
     }
 
+    private var slideshowSettings: SlideshowSettings { SlideshowSettings() }
+    private var slideshowTransition: SlideshowTransition { slideshowSettings.transition }
+    private var slideshowImageMode: SlideshowImageMode { slideshowMode != .off ? slideshowSettings.imageMode : .fit }
+    private var slideshowShowProgressBar: Bool { slideshowSettings.showProgressBar }
+    private var kenBurnsEnabled: Bool { slideshowMode != .off && slideshowSettings.kenBurnsEnabled }
+
     private func handleSelect() {
         let asset = currentAsset
         if asset.type == .video && !isPlayingVideo {
             logger.info("Video playback requested for asset \(asset.id)")
             isPlayingVideo = true
+        }
+    }
+
+    #if os(tvOS)
+    private func handlePlayPause() {
+        if slideshowMode != .off {
+            stopSlideshow()
+        } else if currentAsset.type == .video {
+            handleSelect()
+        } else {
+            startSlideshow(mode: lastSlideshowMode)
+        }
+    }
+    #endif
+
+    // MARK: - Slideshow
+
+    private func startSlideshow(mode: SlideshowMode) {
+        guard mode != .off, !assets.isEmpty else { return }
+        slideshowMode = mode
+        lastSlideshowMode = mode
+
+        if mode == .shuffle {
+            shuffledIndices = assets.indices.filter { assets[$0].type == .photo }.shuffled()
+            shuffleCursor = 0
+        }
+
+        showSlideshowIndicator = true
+        withAnimation(.easeOut(duration: 0.3).delay(2)) {
+            showSlideshowIndicator = false
+        }
+
+        restartSlideshowTimer()
+    }
+
+    private func stopSlideshow() {
+        guard slideshowMode != .off else { return }
+        slideshowTask?.cancel()
+        slideshowTask = nil
+        slideshowMode = .off
+        shuffledIndices = []
+        shuffleCursor = 0
+        withAnimation(.easeOut(duration: 0.2)) {
+            slideshowProgress = 0
+        }
+    }
+
+    private func advanceSlideshow() {
+        guard !assets.isEmpty else { return }
+
+        if slideshowMode == .shuffle {
+            guard !shuffledIndices.isEmpty else { return }
+            shuffleCursor = (shuffleCursor + 1) % shuffledIndices.count
+            withAnimation(.easeInOut(duration: 0.3)) {
+                currentIndex = shuffledIndices[shuffleCursor]
+            }
+        } else {
+            // Ordered: find next photo, wrapping around
+            let count = assets.count
+            for offset in 1...count {
+                let candidate = (currentIndex + offset) % count
+                if assets[candidate].type == .photo {
+                    withAnimation(.easeInOut(duration: 0.3)) {
+                        currentIndex = candidate
+                    }
+                    return
+                }
+            }
+        }
+    }
+
+    private func reverseSlideshow() {
+        guard !assets.isEmpty else { return }
+
+        if slideshowMode == .shuffle {
+            guard !shuffledIndices.isEmpty else { return }
+            shuffleCursor = (shuffleCursor - 1 + shuffledIndices.count) % shuffledIndices.count
+            withAnimation(.easeInOut(duration: 0.3)) {
+                currentIndex = shuffledIndices[shuffleCursor]
+            }
+        } else {
+            let count = assets.count
+            for offset in 1...count {
+                let candidate = (currentIndex - offset + count) % count
+                if assets[candidate].type == .photo {
+                    withAnimation(.easeInOut(duration: 0.3)) {
+                        currentIndex = candidate
+                    }
+                    return
+                }
+            }
+        }
+    }
+
+    private func skipSlideshow(forward: Bool) {
+        guard slideshowMode != .off else { return }
+        slideshowTask?.cancel()
+        // Snap progress bar reset — photo transitions use their own explicit withAnimation
+        withAnimation(nil) { slideshowProgress = 1 }
+        if forward {
+            advanceSlideshow()
+        } else {
+            reverseSlideshow()
+        }
+        restartSlideshowTimer()
+    }
+
+    private func restartSlideshowTimer() {
+        let interval = slideshowSettings.interval
+        slideshowTask?.cancel()
+        slideshowTask = Task {
+            while !Task.isCancelled {
+                slideshowProgress = 1
+                withAnimation(.linear(duration: interval)) {
+                    slideshowProgress = 0
+                }
+                try? await Task.sleep(for: .seconds(interval))
+                guard !Task.isCancelled else { break }
+                advanceSlideshow()
+                try? await Task.sleep(for: .milliseconds(350))
+            }
+        }
+    }
+
+    private func toggleSlideshow() {
+        if slideshowMode != .off {
+            stopSlideshow()
+        } else {
+            startSlideshow(mode: lastSlideshowMode)
         }
     }
 

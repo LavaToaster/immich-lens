@@ -110,7 +110,7 @@ class TopShelfService {
                 guard let httpResponse = response as? HTTPURLResponse,
                       httpResponse.statusCode == 200 else { continue }
 
-                let faceCenterY = extractFaceCenterY(from: dto)
+                let faceCenterY = dto.faceCenterY
                 let processed = processImageForTopShelf(data, faceCenterY: faceCenterY)
                 try processed.write(to: localImageURL)
             } catch {
@@ -135,37 +135,6 @@ class TopShelfService {
         await MainActor.run {
             TVTopShelfContentProvider.topShelfContentDidChange()
         }
-    }
-
-    /// Extract the average normalized face center Y from all faces in the asset.
-    /// Returns nil if no faces detected, otherwise 0.0 = top, 1.0 = bottom.
-    private nonisolated static func extractFaceCenterY(
-        from dto: Components.Schemas.AssetResponseDto
-    ) -> Double? {
-        var allCenters: [Double] = []
-
-        // Faces from recognized people
-        if let people = dto.people {
-            for person in people {
-                for face in person.faces {
-                    guard face.imageHeight > 0 else { continue }
-                    let centerY = Double(face.boundingBoxY1 + face.boundingBoxY2) / 2.0
-                    allCenters.append(centerY / Double(face.imageHeight))
-                }
-            }
-        }
-
-        // Unassigned faces
-        if let unassigned = dto.unassignedFaces {
-            for face in unassigned {
-                guard face.imageHeight > 0 else { continue }
-                let centerY = Double(face.boundingBoxY1 + face.boundingBoxY2) / 2.0
-                allCenters.append(centerY / Double(face.imageHeight))
-            }
-        }
-
-        guard !allCenters.isEmpty else { return nil }
-        return allCenters.reduce(0, +) / Double(allCenters.count)
     }
 
     /// Fill 3840x2160 (4K) by scaling to cover, centering on face if available.

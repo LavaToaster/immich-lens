@@ -11,7 +11,14 @@ import SwiftUI
 struct AssetPageView: View {
     let asset: Asset
     let isActive: Bool
+    var imageMode: SlideshowImageMode = .fit
+    var kenBurnsEnabled: Bool = false
+    var slideshowInterval: Double = 5
     @Binding var isPlayingVideo: Bool
+    @State private var faceCenterY: CGFloat?
+    @State private var kenBurnsScale: CGFloat = 1.0
+    @State private var kenBurnsOffsetX: CGFloat = 0
+    @State private var kenBurnsOffsetY: CGFloat = 0
     #if os(macOS)
     @State private var player: AVPlayer?
     @State private var isLoadingVideo = false
@@ -27,6 +34,13 @@ struct AssetPageView: View {
             } else {
                 videoContent
             }
+        }
+        .task(id: "\(asset.id)-\(imageMode)-\(isActive)") {
+            guard imageMode == .cover, isActive, asset.type == .photo else {
+                faceCenterY = nil
+                return
+            }
+            await fetchFaceCenterY()
         }
         #if os(macOS)
         .onChange(of: isPlayingVideo) { _, playing in
@@ -65,25 +79,122 @@ struct AssetPageView: View {
     private var photoView: some View {
         Group {
             if let imageUrl = asset.imageUrl(.preview) {
-                LazyImage(url: imageUrl) { state in
-                    if let image = state.image {
-                        image
-                            .resizable()
-                            .aspectRatio(contentMode: .fit)
-                    } else if state.error != nil {
-                        errorView("Failed to load photo")
-                    } else if let placeholder = cachedThumbnail {
-                        placeholder
-                            .resizable()
-                            .aspectRatio(contentMode: .fit)
-                    } else {
-                        ProgressView()
-                            .scaleEffect(1.5)
-                    }
+                if imageMode == .cover {
+                    coverPhotoView(imageUrl: imageUrl)
+                } else {
+                    fitPhotoView(imageUrl: imageUrl)
                 }
             } else {
                 errorView("Photo not available")
             }
+        }
+        .scaleEffect(kenBurnsScale)
+        .offset(x: kenBurnsOffsetX, y: kenBurnsOffsetY)
+        .clipped()
+        .onAppear { startKenBurnsIfNeeded() }
+        .onChange(of: isActive) { _, active in
+            if active { startKenBurnsIfNeeded() } else { resetKenBurns() }
+        }
+    }
+
+    private func startKenBurnsIfNeeded() {
+        guard kenBurnsEnabled, isActive, asset.type == .photo else {
+            resetKenBurns()
+            return
+        }
+        let startScale = CGFloat.random(in: 1.05...1.15)
+        let endScale = CGFloat.random(in: 1.05...1.15)
+        let maxOffset: CGFloat = 40
+        let startX = CGFloat.random(in: -maxOffset...maxOffset)
+        let startY = CGFloat.random(in: -maxOffset...maxOffset)
+        let endX = CGFloat.random(in: -maxOffset...maxOffset)
+        let endY = CGFloat.random(in: -maxOffset...maxOffset)
+
+        kenBurnsScale = startScale
+        kenBurnsOffsetX = startX
+        kenBurnsOffsetY = startY
+
+        withAnimation(.linear(duration: slideshowInterval)) {
+            kenBurnsScale = endScale
+            kenBurnsOffsetX = endX
+            kenBurnsOffsetY = endY
+        }
+    }
+
+    private func resetKenBurns() {
+        kenBurnsScale = 1.0
+        kenBurnsOffsetX = 0
+        kenBurnsOffsetY = 0
+    }
+
+    private func fitPhotoView(imageUrl: URL) -> some View {
+        LazyImage(url: imageUrl) { state in
+            if let image = state.image {
+                image
+                    .resizable()
+                    .aspectRatio(contentMode: .fit)
+            } else if state.error != nil {
+                errorView("Failed to load photo")
+            } else if let placeholder = cachedThumbnail {
+                placeholder
+                    .resizable()
+                    .aspectRatio(contentMode: .fit)
+            } else {
+                ProgressView()
+                    .scaleEffect(1.5)
+            }
+        }
+    }
+
+    private func coverPhotoView(imageUrl: URL) -> some View {
+        GeometryReader { geo in
+            LazyImage(url: imageUrl) { state in
+                if let image = state.image {
+                    let imageSize = state.imageContainer?.image.size ?? .zero
+                    Color.clear.overlay {
+                        image
+                            .resizable()
+                            .aspectRatio(contentMode: .fill)
+                            .offset(y: faceYOffset(containerSize: geo.size, imageSize: imageSize))
+                    }
+                    .clipped()
+                } else if state.error != nil {
+                    errorView("Failed to load photo")
+                } else if let placeholder = cachedThumbnail {
+                    Color.clear.overlay {
+                        placeholder
+                            .resizable()
+                            .aspectRatio(contentMode: .fill)
+                    }
+                    .clipped()
+                } else {
+                    ProgressView()
+                        .scaleEffect(1.5)
+                        .frame(maxWidth: .infinity, maxHeight: .infinity)
+                }
+            }
+        }
+    }
+
+    private func faceYOffset(containerSize: CGSize, imageSize: CGSize) -> CGFloat {
+        guard let faceCenterY, imageSize.height > 0, containerSize.height > 0 else { return 0 }
+        let scale = max(containerSize.width / imageSize.width, containerSize.height / imageSize.height)
+        let scaledHeight = imageSize.height * scale
+        let excess = scaledHeight - containerSize.height
+        guard excess > 0 else { return 0 }
+        let offset = scaledHeight * (0.5 - faceCenterY)
+        return max(-excess / 2, min(excess / 2, offset))
+    }
+
+    private func fetchFaceCenterY() async {
+        guard let client = apiService.client else { return }
+        do {
+            let response = try await client.getAssetInfo(path: .init(id: asset.id))
+            let dto = try response.ok.body.json
+            faceCenterY = dto.faceCenterY.map { CGFloat($0) }
+        } catch {
+            guard !Task.isCancelled else { return }
+            logger.info("Cover mode: no face data for \(asset.id)")
         }
     }
 
