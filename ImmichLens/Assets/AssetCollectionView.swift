@@ -79,6 +79,7 @@ struct AssetCollectionView<Source: AssetSource>: View {
     @State private var visibleRange: Range<Int> = 0..<0
     @State private var initialNavigationDone = false
     @FocusState private var focusedIndex: Int?
+    @State private var slideshowLaunch: SlideshowLaunch?
 
     var body: some View {
         gridContent
@@ -106,6 +107,31 @@ struct AssetCollectionView<Source: AssetSource>: View {
                 AssetDetailView(assets: assets, initialAsset: asset)
                     .environment(apiService)
             }
+            .navigationDestination(item: $slideshowLaunch) { launch in
+                AssetDetailView(
+                    assets: assets,
+                    initialAsset: launch.asset,
+                    slideshowMode: launch.mode
+                )
+                .environment(apiService)
+            }
+            #if os(macOS)
+            .toolbar {
+                ToolbarItem {
+                    Menu {
+                        Button("Play", systemImage: "play.circle") {
+                            launchSlideshow(mode: .ordered)
+                        }
+                        Button("Shuffle", systemImage: "shuffle.circle") {
+                            launchSlideshow(mode: .shuffle)
+                        }
+                    } label: {
+                        Label("Slideshow", systemImage: "play.square.stack")
+                    }
+                    .disabled(photoAssets.isEmpty)
+                }
+            }
+            #endif
     }
 
     @State private var navigationToInitialAsset: Asset?
@@ -134,7 +160,13 @@ struct AssetCollectionView<Source: AssetSource>: View {
                     title: tvOSTitle,
                     subtitle: tvOSSubtitle,
                     focusedIndex: $focusedIndex,
-                    visibleRange: $visibleRange
+                    visibleRange: $visibleRange,
+                    onSlideshow: photoAssets.isEmpty ? nil : {
+                        launchSlideshow(mode: .ordered)
+                    },
+                    onShuffle: photoAssets.isEmpty ? nil : {
+                        launchSlideshow(mode: .shuffle)
+                    }
                 )
                 #endif
             }
@@ -191,5 +223,14 @@ struct AssetCollectionView<Source: AssetSource>: View {
 
     private var tvOSSubtitle: String? {
         source.title.isEmpty ? nil : visibleDateRange
+    }
+
+    private var photoAssets: [Asset] {
+        assets.filter { $0.type == .photo }
+    }
+
+    private func launchSlideshow(mode: SlideshowMode) {
+        guard let startAsset = (mode == .shuffle ? photoAssets.randomElement() : photoAssets.first) else { return }
+        slideshowLaunch = SlideshowLaunch(asset: startAsset, mode: mode)
     }
 }
