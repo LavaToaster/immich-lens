@@ -6,6 +6,10 @@
 import AVKit
 import SwiftUI
 
+#if os(macOS)
+import AppKit
+#endif
+
 struct AssetDetailView: View {
     let assets: [Asset]
     @State private var currentIndex: Int
@@ -28,6 +32,7 @@ struct AssetDetailView: View {
     @State private var isPlayingVideo = false
     #if os(macOS)
     @FocusState private var isDetailFocused: Bool
+    @State private var fullScreenDelegate = FullScreenWindowDelegate()
     #endif
     #if os(tvOS)
     @State private var player = AVPlayer()
@@ -157,7 +162,11 @@ struct AssetDetailView: View {
         #else
         .navigationTitle(currentAsset.locationTitle)
         .navigationSubtitle(currentAsset.detailSubtitle(index: currentIndex, total: assets.count))
-        .toolbarBackgroundVisibility(.hidden, for: .windowToolbar)
+        .background {
+            HostingWindowFinder { window in
+                window?.delegate = fullScreenDelegate
+            }
+        }
         #endif
         #if os(macOS)
         .focusable()
@@ -260,7 +269,7 @@ struct AssetDetailView: View {
     // MARK: - Slideshow
 
     private func startSlideshow(mode: SlideshowMode) {
-        guard mode != .off, !assets.isEmpty else { return }
+        guard mode != .off, assets.contains(where: { $0.type == .photo }) else { return }
         slideshowMode = mode
         lastSlideshowMode = mode
 
@@ -593,3 +602,31 @@ struct AssetDetailView: View {
         return Array(lo...hi)
     }
 }
+
+// MARK: - macOS Full Screen Toolbar Auto-Hide
+// https://stackoverflow.com/questions/76366878/how-do-i-hide-my-toolbar-in-swiftui-when-full-screened
+
+#if os(macOS)
+private class FullScreenWindowDelegate: NSObject, NSWindowDelegate {
+    func window(
+        _ window: NSWindow,
+        willUseFullScreenPresentationOptions proposedOptions: NSApplication.PresentationOptions = []
+    ) -> NSApplication.PresentationOptions {
+        [.autoHideToolbar, .autoHideMenuBar, .fullScreen]
+    }
+}
+
+private struct HostingWindowFinder: NSViewRepresentable {
+    var callback: (NSWindow?) -> Void
+
+    func makeNSView(context: Context) -> NSView {
+        let view = NSView()
+        DispatchQueue.main.async { self.callback(view.window) }
+        return view
+    }
+
+    func updateNSView(_ nsView: NSView, context: Context) {
+        DispatchQueue.main.async { self.callback(nsView.window) }
+    }
+}
+#endif

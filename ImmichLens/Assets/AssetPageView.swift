@@ -90,7 +90,6 @@ struct AssetPageView: View {
         }
         .scaleEffect(kenBurnsScale)
         .offset(x: kenBurnsOffsetX, y: kenBurnsOffsetY)
-        .clipped()
         .onAppear { startKenBurnsIfNeeded() }
         .onChange(of: isActive) { _, active in
             if active { startKenBurnsIfNeeded() } else { resetKenBurns() }

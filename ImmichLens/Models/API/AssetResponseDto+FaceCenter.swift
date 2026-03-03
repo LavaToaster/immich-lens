@@ -11,7 +11,7 @@ extension Components.Schemas.AssetResponseDto {
                 for face in person.faces {
                     guard face.imageHeight > 0 else { continue }
                     let centerY = Double(face.boundingBoxY1 + face.boundingBoxY2) / 2.0
-                    allCenters.append(centerY / Double(face.imageHeight))
+                    allCenters.append(min(max(centerY / Double(face.imageHeight), 0.0), 1.0))
                 }
             }
         }
@@ -20,7 +20,7 @@ extension Components.Schemas.AssetResponseDto {
             for face in unassignedFaces {
                 guard face.imageHeight > 0 else { continue }
                 let centerY = Double(face.boundingBoxY1 + face.boundingBoxY2) / 2.0
-                allCenters.append(centerY / Double(face.imageHeight))
+                allCenters.append(min(max(centerY / Double(face.imageHeight), 0.0), 1.0))
             }
         }
 
