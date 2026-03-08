@@ -26,20 +26,15 @@
           "name" : "Group 1"
         },
         {
-          "blend-mode-specializations" : [
-            {
-              "value" : "plus-lighter"
-            },
-            {
-              "appearance" : "tinted",
-              "value" : "normal"
-            }
-          ],
-          "glass" : true,
-          "hidden" : false,
-          "image-name" : "immich_logo 1.png",
-          "name" : "immich_logo 1",
-          "opacity" : 1
+          "image-name" : "SVG Image.svg",
+          "name" : "SVG Image",
+          "position" : {
+            "scale" : 3.3,
+            "translation-in-points" : [
+              0,
+              0
+            ]
+          }
         },
         {
           "glass" : true,
