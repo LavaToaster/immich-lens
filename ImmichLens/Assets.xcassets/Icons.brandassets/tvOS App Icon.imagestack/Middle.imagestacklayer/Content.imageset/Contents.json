@@ -1,12 +1,12 @@
 {
   "images" : [
     {
-      "filename" : "tvOS - Middle.png",
+      "filename" : "Logo.png",
       "idiom" : "tv",
       "scale" : "1x"
     },
     {
-      "filename" : "tvOS - Middle@2x.png",
+      "filename" : "Logo@2x.png",
       "idiom" : "tv",
       "scale" : "2x"
     }
